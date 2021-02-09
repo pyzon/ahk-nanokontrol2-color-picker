@@ -12,6 +12,9 @@ A color picker tool to be used with a MIDI controller that has at least four fad
 * There is another button that can pick the color of the pixel where the cursor is.
 * The buttons that have a function are lit so it's easier to find them. I don't know about other MIDI controllers but in the case of the nanoKONTROL2, this can be done by simply sending back the same note which the button is generating.
 
+![Tool window](./images/readme_tool_window.png)
+![nanoKONTROL2](./images/readme_nano.png)
+
 ## Used libraries
 
 * [MIDI in library by Micah Stubbs](https://github.com/micahstubbs/midi4ahk)
