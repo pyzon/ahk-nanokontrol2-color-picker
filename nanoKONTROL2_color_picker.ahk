@@ -1,6 +1,12 @@
 /*
 
-Before using this, open Korg Kontrol Editor and change the Control Mode to the default CC mode.
+nanoKONTROL2 color picker - v1.0.2
+A color picker tool to be used with a MIDI controller that has at least
+four faders and a few buttons. The script is built for KORG nanoKONTROL2
+device but can be customised for other devices.
+
+Before using this, open Korg Kontrol Editor and change the Control Mode
+to the default CC mode.
 
 The default values for nanoKONTROL2 in CC mode are the following.
 
@@ -87,17 +93,9 @@ h_midiout := midiOutOpen(1) ; param: midi out device ID
 ;   param5: data2 (vel/val))
 midiOutShortMsg(h_midiout, "N1", 1, 74, 127)
 midiOutShortMsg(h_midiout, "N1", 1, 75, 127)
+midiOutShortMsg(h_midiout, "N1", 1, 62, 127)
+midiOutShortMsg(h_midiout, "N1", 1, 63, 127)
 midiOutShortMsg(h_midiout, "N1", 14, 12, 127)
-
-H := 1
-S := 0
-V := 1
-A := 1
-;~ R := 1
-;~ G := 0
-;~ B := 0
-
-currentSlider = ""
 
 ;--------------------  MIDI hotkey mappings  -----------------------
 ; see the readme (https://github.com/micahstubbs/midi4ahk) for how these work
@@ -169,17 +167,44 @@ Gui, Picker:Add, Picture, x+m  y52, .\images\alpha.png
 Gui, Picker:Add, Picture, xp-2 y50 vASlider BackgroundTrans, .\images\thumb.png
 Gui, Picker:Show, w140 h260
 
+;---------------------- Loading saved state --------------------------
+IniRead, H, saved_color.ini, Color1, H, 1
+IniRead, S, saved_color.ini, Color1, S, 1
+IniRead, V, saved_color.ini, Color1, V, 1
+IniRead, A, saved_color.ini, Color1, A, 1
+gosub, HSVChanged
+
+currentSlider = ""
+
 return
 ;--------------------- End of auto execute section -------------------
 
 ExitFunc(ExitReason, ExitCode) {
    global h_midiout
+   ; Turn off LEDs
    midiOutShortMsg(h_midiout, "N0", 1, 74, 0)
    midiOutShortMsg(h_midiout, "N0", 1, 75, 0)
+   midiOutShortMsg(h_midiout, "N0", 1, 62, 0)
+   midiOutShortMsg(h_midiout, "N0", 1, 63, 0)
    midiOutShortMsg(h_midiout, "N0", 14, 12, 127)
+   ; Close MIDI ports
    midiOutClose(h_midiout)
    midi_in_Close()
+   ; Unhook mouse
    DllCall("UnhookWindowsHookEx", "Uint", hHookMouse)
+   ; Save state
+   global H
+   global S
+   global V
+   global A
+   IniWrite, %H%, saved_color.ini, Color1, H
+   IniWrite, %S%, saved_color.ini, Color1, S
+   IniWrite, %V%, saved_color.ini, Color1, V
+   IniWrite, %A%, saved_color.ini, Color1, A
+   if ErrorLevel {
+      MsgBox, There was an error writing the saved_color.ini file
+   }
+   
    ; ExitApp not needed
 }
 
@@ -374,6 +399,17 @@ rec3(note, vel) {
       SendRaw, %color%
    }
 }
+mute3(note, vel) {
+   if (vel == 127) {
+      global H
+      global S
+      global V
+      out := HSV_Convert2RGB(H, S, V)
+      RGBColor := Round(out.R*255)<<16|Round(out.G*255)<<8|Round(out.B*255)
+      color := Format("#{:06x}", RGBColor)
+      SendRaw, %color%
+   }
+}
 ; Insert color hex code with alpha
 rec4(note, vel) {
    if (vel == 127) {
@@ -385,6 +421,19 @@ rec4(note, vel) {
       RGBColor := Round(out.R*255)<<16|Round(out.G*255)<<8|Round(out.B*255)
       Alpha := Round(A*256)
       color := Format("{1:06x}{2:02x}", RGBColor, Alpha)
+      SendRaw, %color%
+   }
+}
+mute4(note, vel) {
+   if (vel == 127) {
+      global H
+      global S
+      global V
+      global A
+      out := HSV_Convert2RGB(H, S, V)
+      RGBColor := Round(out.R*255)<<16|Round(out.G*255)<<8|Round(out.B*255)
+      Alpha := Round(A*256)
+      color := Format("#{1:06x}{2:02x}", RGBColor, Alpha)
       SendRaw, %color%
    }
 }
