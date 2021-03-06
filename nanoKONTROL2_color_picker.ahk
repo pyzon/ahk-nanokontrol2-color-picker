@@ -66,10 +66,14 @@ SendMode Input
 SetWorkingDir %A_ScriptDir%
 #Persistent
 #SingleInstance
+CoordMode, Mouse, Window
+CoordMode, Pixel, Window
 
 OnExit("ExitFunc")
 if (midi_in_Open(0)) ; param: midi in device ID
    ExitApp
+
+hHookMouse := DllCall("SetWindowsHookEx", "int", 14, "Uint", RegisterCallback("Mouse", "Fast"), "Uint", 0, "Uint", 0)
 
 hModule := OpenMidiAPI()
 h_midiout := midiOutOpen(1) ; param: midi out device ID
@@ -92,6 +96,8 @@ A := 1
 ;~ R := 1
 ;~ G := 0
 ;~ B := 0
+
+currentSlider = ""
 
 ;--------------------  MIDI hotkey mappings  -----------------------
 ; see the readme (https://github.com/micahstubbs/midi4ahk) for how these work
@@ -173,7 +179,100 @@ ExitFunc(ExitReason, ExitCode) {
    midiOutShortMsg(h_midiout, "N0", 14, 12, 127)
    midiOutClose(h_midiout)
    midi_in_Close()
+   DllCall("UnhookWindowsHookEx", "Uint", hHookMouse)
    ; ExitApp not needed
+}
+
+Mouse(nCode, wParam, lParam)
+{
+   Critical
+   switch wParam {
+   case 0x201: ; Left button down
+      MouseGetPos, x, y
+      if (y > 78 && y <= 277) {
+         if (x >= 15 && x < 35) {
+            global currentSlider
+            currentSlider := "H"
+            global H
+            H := (200 - (y - 77)) / 200
+            gosub, HChanged
+         }
+         if (x >= 47 && x < 67) {
+            global currentSlider
+            currentSlider := "S"
+            global S
+            S := (200 - (y - 77)) / 200
+            gosub, SChanged
+         }
+         if (x >= 79 && x < 99) {
+            global currentSlider
+            currentSlider := "V"
+            global V
+            V := (200 - (y - 77)) / 200
+            gosub, VChanged
+         }
+         if (x >= 111 && x < 131) {
+            global currentSlider
+            currentSlider := "A"
+            global A
+            A := (200 - (y - 77)) / 200
+            gosub, AChanged
+         }
+      }
+   case 0x200: ; Mouse move
+      if GetKeyState("LButton") {
+         MouseGetPos, x, y
+         global currentSlider
+         switch currentSlider {
+         case "H":
+            global H
+            ; clamp the y value to the top and bottom of the slider
+            H := y <= 77 ? 255/256
+               : y > 277 ? 0
+               : (200 - (y - 77)) / 200
+            gosub, HChanged
+         case "S":
+            global S
+            ; clamp the y value to the top and bottom of the slider
+            S := y <= 77 ? 255/256
+               : y > 277 ? 0
+               : (200 - (y - 77)) / 200
+            gosub, SChanged
+         case "V":
+            global V
+            ; clamp the y value to the top and bottom of the slider
+            V := y <= 77 ? 255/256
+               : y > 277 ? 0
+               : (200 - (y - 77)) / 200
+            gosub, VChanged
+         case "A":
+            global A
+            ; clamp the y value to the top and bottom of the slider
+            A := y <= 77 ? 255/256
+               : y > 277 ? 0
+               : (200 - (y - 77)) / 200
+            gosub, AChanged
+         }
+      }
+   case 0x202: ; Left button up
+      global currentSlider
+      currentSlider := ""
+   }
+   
+   ;~ Tooltip, % (wParam = 0x201 ? "LBUTTONDOWN"
+      ;~ : wParam = 0x202 ? "LBUTTONUP"
+      ;~ : wParam = 0x200 ? "MOUSEMOVE"
+      ;~ : wParam = 0x20A ? "MOUSEWHEEL"
+      ;~ : wParam = 0x20E ? "MOUSEWHEEL"
+      ;~ : wParam = 0x204 ? "RBUTTONDOWN"
+      ;~ : wParam = 0x205 ? "RBUTTONUP"
+      ;~ : "?")
+   ;~ . " ptX: " . NumGet(lParam+0, 0, "int")
+   ;~ . " ptY: " . NumGet(lParam+0, 4, "int")
+   ;~ . "`nmouseData: " . NumGet(lParam+0, 10, "short")
+   ;~ . " flags: " . NumGet(lParam+0, 12, "uint")
+   ;~ . " time: " . NumGet(lParam+0, 16, "uint")
+   Return DllCall("CallNextHookEx", "Uint", 0, "int", nCode, "Uint", wParam, "Uint", lParam)
 }
 
 PickerGuiClose:
