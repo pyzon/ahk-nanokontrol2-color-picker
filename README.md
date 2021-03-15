@@ -50,3 +50,5 @@ A color picker tool to be used with a MIDI controller that has at least four fad
 - Generalise the script to any MIDI controller, and store the contoller-specific data in config files.
 - Eventually implement the motorized fader and/or infinite knob changes. I currently don't have a device to test this on, so I won't do this in the near future.
 - Make the UI scaleable.
+
+## [Version history](./VersionHistory.md)
