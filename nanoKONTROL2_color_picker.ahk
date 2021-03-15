@@ -1,6 +1,6 @@
 /*
 
-nanoKONTROL2 color picker - v1.0.2
+nanoKONTROL2 color picker
 A color picker tool to be used with a MIDI controller that has at least
 four faders and a few buttons. The script is built for KORG nanoKONTROL2
 device but can be customised for other devices.
@@ -66,7 +66,6 @@ Slider8      | 1       | CC 43    | 0-127     |
 
 */
 
-;------------------------- Script init stuff -------------------------
 #NoEnv
 SendMode Input
 SetWorkingDir %A_ScriptDir%
@@ -84,20 +83,29 @@ hHookMouse := DllCall("SetWindowsHookEx", "int", 14, "Uint", RegisterCallback("M
 hModule := OpenMidiAPI()
 h_midiout := midiOutOpen(1) ; param: midi out device ID
 
-;-------------------- Sending midi to light up LEDs ------------------
+;------------------------ Sending midi to light up LEDs ----------------------
 ; midiOutShortMsg
 ;   param1: midi out device handle
 ;   param2: message type
 ;   param3: channel
 ;   param4: data1 (note/cc)
 ;   param5: data2 (vel/val))
-midiOutShortMsg(h_midiout, "N1", 1, 74, 127)
-midiOutShortMsg(h_midiout, "N1", 1, 75, 127)
+midiOutShortMsg(h_midiout, "N1", 14, 13, 127)
+midiOutShortMsg(h_midiout, "N1", 14, 14, 127)
+midiOutShortMsg(h_midiout, "N1", 14, 11, 127)
+midiOutShortMsg(h_midiout, "N1", 14, 10, 127)
+midiOutShortMsg(h_midiout, "N1", 14, 12, 127)
+midiOutShortMsg(h_midiout, "N1", 14, 15, 127)
+midiOutShortMsg(h_midiout, "N1", 1, 48, 127)
+midiOutShortMsg(h_midiout, "N1", 1, 49, 127)
+midiOutShortMsg(h_midiout, "N1", 1, 50, 127)
+midiOutShortMsg(h_midiout, "N1", 1, 51, 127)
+midiOutShortMsg(h_midiout, "N1", 1, 60, 127)
+midiOutShortMsg(h_midiout, "N1", 1, 61, 127)
 midiOutShortMsg(h_midiout, "N1", 1, 62, 127)
 midiOutShortMsg(h_midiout, "N1", 1, 63, 127)
-midiOutShortMsg(h_midiout, "N1", 14, 12, 127)
 
-;--------------------  MIDI hotkey mappings  -----------------------
+;------------------------  MIDI hotkey mappings  ---------------------------
 ; see the readme (https://github.com/micahstubbs/midi4ahk) for how these work
 listenCC(0, "trackLeft", 14)
 listenCC(0, "trackRight", 14)
@@ -151,152 +159,153 @@ listenCC(41, "slider6", 1)
 listenCC(42, "slider7", 1)
 listenCC(43, "slider8", 1)
 
-;------------------------------- GUI ---------------------------------
-Gui, Picker:New, ToolWindow AlwaysOnTop, Color Picker
-; Originally I used progress bar for the color holder
-;Gui, Add, Progress, xm ym w160 h40 hwndColorHolder, 100
-; A listview just looks better I guess
-Gui, Picker:Add, ListView, xm ym w120 h40 -Hdr ReadOnly -Tabstop hwndColorHolder
-Gui, Picker:Add, Picture, xp+2 y52, .\images\hue.png
-Gui, Picker:Add, Picture, xp-2 y50 vHSlider BackgroundTrans, .\images\thumb.png
-Gui, Picker:Add, Picture, x+m  y52, .\images\saturation.png
-Gui, Picker:Add, Picture, xp-2 y50 vSSlider BackgroundTrans, .\images\thumb.png
-Gui, Picker:Add, Picture, x+m  y52, .\images\value.png
-Gui, Picker:Add, Picture, xp-2 y50 vVSlider BackgroundTrans, .\images\thumb.png
-Gui, Picker:Add, Picture, x+m  y52, .\images\alpha.png
-Gui, Picker:Add, Picture, xp-2 y50 vASlider BackgroundTrans, .\images\thumb.png
-Gui, Picker:Show, w140 h260
 
-;---------------------- Loading saved state --------------------------
-IniRead, H, saved_color.ini, Color1, H, 1
-IniRead, S, saved_color.ini, Color1, S, 1
-IniRead, V, saved_color.ini, Color1, V, 1
-IniRead, A, saved_color.ini, Color1, A, 1
-gosub, HSVChanged
+; Loading saved state
+numberOfSwatches := 8
+swatches := []
+IniRead, currentSwatch, save.ini, General, CurrentSwatch, 1
+loop %numberOfSwatches% {
+   IniRead, H, save.ini, % "Swatch" . A_Index, H, 1
+   IniRead, S, save.ini, % "Swatch" . A_Index, S, 0
+   IniRead, V, save.ini, % "Swatch" . A_Index, V, 0
+   IniRead, A, save.ini, % "Swatch" . A_Index, A, 1
+   swatches.Push({H:H, S:S, V:V, A:A})
+}
 
-currentSlider = ""
+gosub, InitGui
+
+currentSlider = "" ; Keeps track of the slider that has been clicked and dragged
+
+SysGet, CYSMCAPTION, 51 ; height of the tool window title bar
+SysGet, CXFIXEDFRAME, 7 ; width of the border of the window
+SysGet, CYFIXEDFRAME, 8 ; height of the border of the window
 
 return
-;--------------------- End of auto execute section -------------------
+;------------------------- End of auto execute section -----------------------
 
 ExitFunc(ExitReason, ExitCode) {
    global h_midiout
    ; Turn off LEDs
-   midiOutShortMsg(h_midiout, "N0", 1, 74, 0)
-   midiOutShortMsg(h_midiout, "N0", 1, 75, 0)
-   midiOutShortMsg(h_midiout, "N0", 1, 62, 0)
-   midiOutShortMsg(h_midiout, "N0", 1, 63, 0)
+   midiOutShortMsg(h_midiout, "N0", 14, 13, 127)
+   midiOutShortMsg(h_midiout, "N0", 14, 14, 127)
+   midiOutShortMsg(h_midiout, "N0", 14, 11, 127)
+   midiOutShortMsg(h_midiout, "N0", 14, 10, 127)
    midiOutShortMsg(h_midiout, "N0", 14, 12, 127)
+   midiOutShortMsg(h_midiout, "N0", 14, 15, 127)
+   midiOutShortMsg(h_midiout, "N0", 1, 48, 127)
+   midiOutShortMsg(h_midiout, "N0", 1, 49, 127)
+   midiOutShortMsg(h_midiout, "N0", 1, 50, 127)
+   midiOutShortMsg(h_midiout, "N0", 1, 51, 127)
+   midiOutShortMsg(h_midiout, "N0", 1, 60, 127)
+   midiOutShortMsg(h_midiout, "N0", 1, 61, 127)
+   midiOutShortMsg(h_midiout, "N0", 1, 62, 127)
+   midiOutShortMsg(h_midiout, "N0", 1, 63, 127)
    ; Close MIDI ports
    midiOutClose(h_midiout)
    midi_in_Close()
    ; Unhook mouse
    DllCall("UnhookWindowsHookEx", "Uint", hHookMouse)
    ; Save state
-   global H
-   global S
-   global V
-   global A
-   IniWrite, %H%, saved_color.ini, Color1, H
-   IniWrite, %S%, saved_color.ini, Color1, S
-   IniWrite, %V%, saved_color.ini, Color1, V
-   IniWrite, %A%, saved_color.ini, Color1, A
-   if ErrorLevel {
-      MsgBox, There was an error writing the saved_color.ini file
+   global numberOfSwatches
+   global swatches
+   global currentSwatch
+   IniWrite, %currentSwatch%, save.ini, General, CurrentSwatch
+   loop %numberOfSwatches% {
+      H := swatches[A_Index].H
+      S := swatches[A_Index].S
+      V := swatches[A_Index].V
+      A := swatches[A_Index].A
+      IniWrite, %H%, save.ini, % "Swatch" . A_Index, H
+      IniWrite, %S%, save.ini, % "Swatch" . A_Index, S
+      IniWrite, %V%, save.ini, % "Swatch" . A_Index, V
+      IniWrite, %A%, save.ini, % "Swatch" . A_Index, A
    }
-   
+   if ErrorLevel {
+      MsgBox, There was an error writing the save.ini file
+   }
    ; ExitApp not needed
 }
 
 Mouse(nCode, wParam, lParam)
 {
    Critical
+   global currentSlider
+   global swatches
+   global currentSwatch
+   global PickerHwnd
+   global CXFIXEDFRAME
+   global CYFIXEDFRAME
+   global CYSMCAPTION
+   WinGetPos, winX, winY,,, ahk_id %PickerHwnd%
+   x := NumGet(lParam+0, 0, "int") - winX - CXFIXEDFRAME
+   y := NumGet(lParam+0, 4, "int") - winY - CYFIXEDFRAME - CYSMCAPTION
    switch wParam {
    case 0x201: ; Left button down
-      MouseGetPos, x, y
-      if (y > 78 && y <= 277) {
-         if (x >= 15 && x < 35) {
-            global currentSlider
-            currentSlider := "H"
-            global H
-            H := (200 - (y - 77)) / 200
-            gosub, HChanged
-         }
-         if (x >= 47 && x < 67) {
-            global currentSlider
-            currentSlider := "S"
-            global S
-            S := (200 - (y - 77)) / 200
+      if (y >= 60 && y < 260) {
+         if (x >= 10 && x < 210) {
+            currentSlider := "SV"
+            swatches[currentSwatch].S := (x - 10) / 199
+            swatches[currentSwatch].V := (199 - (y - 60)) / 199
             gosub, SChanged
-         }
-         if (x >= 79 && x < 99) {
-            global currentSlider
-            currentSlider := "V"
-            global V
-            V := (200 - (y - 77)) / 200
             gosub, VChanged
          }
-         if (x >= 111 && x < 131) {
-            global currentSlider
+         if (x >= 230 && x < 250) {
+            currentSlider := "H"
+            swatches[currentSwatch].H := (199 - (y - 60)) / 199
+            gosub, HChanged
+         }
+         if (x >= 270 && x < 290) {
             currentSlider := "A"
-            global A
-            A := (200 - (y - 77)) / 200
+            swatches[currentSwatch].A := (199 - (y - 60)) / 199
             gosub, AChanged
          }
       }
+      if (y >= 10 && y < 50 && x >= 220 && x < 300) {
+         currentSwatch := ((y - 10) // 20) * 4 + ((x - 220) // 20) + 1
+         gosub, currentSwatchChanged
+      }
    case 0x200: ; Mouse move
       if GetKeyState("LButton") {
-         MouseGetPos, x, y
-         global currentSlider
          switch currentSlider {
-         case "H":
-            global H
-            ; clamp the y value to the top and bottom of the slider
-            H := y <= 77 ? 255/256
-               : y > 277 ? 0
-               : (200 - (y - 77)) / 200
-            gosub, HChanged
-         case "S":
-            global S
-            ; clamp the y value to the top and bottom of the slider
-            S := y <= 77 ? 255/256
-               : y > 277 ? 0
-               : (200 - (y - 77)) / 200
+         case "SV":
+            ; clamp the value to the edges of the controller
+            swatches[currentSwatch].S := x < 10 ? 0
+               : x >= 210 ? 1
+               : (x - 10) / 199
+            swatches[currentSwatch].V := y < 60 ? 1
+               : y >= 260 ? 0
+               : (199 - (y - 60)) / 199
             gosub, SChanged
-         case "V":
-            global V
-            ; clamp the y value to the top and bottom of the slider
-            V := y <= 77 ? 255/256
-               : y > 277 ? 0
-               : (200 - (y - 77)) / 200
             gosub, VChanged
+         case "H":
+            swatches[currentSwatch].H := y < 60 ? 1
+               : y >= 260 ? 0
+               : (199 - (y - 60)) / 199
+            gosub, HChanged
          case "A":
-            global A
-            ; clamp the y value to the top and bottom of the slider
-            A := y <= 77 ? 255/256
-               : y > 277 ? 0
-               : (200 - (y - 77)) / 200
+            swatches[currentSwatch].A := y < 60 ? 1
+               : y >= 260 ? 0
+               : (199 - (y - 60)) / 199
             gosub, AChanged
          }
       }
    case 0x202: ; Left button up
-      global currentSlider
       currentSlider := ""
    }
-   
-   ;~ Tooltip, % (wParam = 0x201 ? "LBUTTONDOWN"
-      ;~ : wParam = 0x202 ? "LBUTTONUP"
-      ;~ : wParam = 0x200 ? "MOUSEMOVE"
-      ;~ : wParam = 0x20A ? "MOUSEWHEEL"
-      ;~ : wParam = 0x20E ? "MOUSEWHEEL"
-      ;~ : wParam = 0x204 ? "RBUTTONDOWN"
-      ;~ : wParam = 0x205 ? "RBUTTONUP"
-      ;~ : "?")
-   ;~ . " ptX: " . NumGet(lParam+0, 0, "int")
-   ;~ . " ptY: " . NumGet(lParam+0, 4, "int")
-   ;~ . "`nmouseData: " . NumGet(lParam+0, 10, "short")
-   ;~ . " flags: " . NumGet(lParam+0, 12, "uint")
-   ;~ . " time: " . NumGet(lParam+0, 16, "uint")
+   ; A cool tooltip for debugging:
+   ; Tooltip, % (wParam = 0x201 ? "LBUTTONDOWN"
+   ;    : wParam = 0x202 ? "LBUTTONUP"
+   ;    : wParam = 0x200 ? "MOUSEMOVE"
+   ;    : wParam = 0x20A ? "MOUSEWHEEL"
+   ;    : wParam = 0x20E ? "MOUSEWHEEL"
+   ;    : wParam = 0x204 ? "RBUTTONDOWN"
+   ;    : wParam = 0x205 ? "RBUTTONUP"
+   ;    : "?")
+   ; . " ptX: " . NumGet(lParam+0, 0, "int")
+   ; . " ptY: " . NumGet(lParam+0, 4, "int")
+   ; . "`nmouseData: " . NumGet(lParam+0, 10, "short")
+   ; . " flags: " . NumGet(lParam+0, 12, "uint")
+   ; . " time: " . NumGet(lParam+0, 16, "uint")
    Return DllCall("CallNextHookEx", "Uint", 0, "int", nCode, "Uint", wParam, "Uint", lParam)
 }
 
@@ -304,36 +313,57 @@ PickerGuiClose:
 PickerGuiEscape:
    ExitApp
 
-HSVChanged:
-   GuiControl, Picker:MoveDraw, HSlider, % "y" Round(248 - H * 200)
-   GuiControl, Picker:MoveDraw, SSlider, % "y" Round(248 - S * 200)
-   GuiControl, Picker:MoveDraw, VSlider, % "y" Round(248 - V * 200)
-   gosub, UpdateColorHolder
+ToggleWindowVisibility() {
+   global guiHidden
+   global PickerHwnd
+   if guiHidden {
+      WinShow, ahk_id %PickerHwnd%
+   } else {
+      WinHide, ahk_id %PickerHwnd%
+   }
+   guiHidden := !guiHidden
    return
-HChanged:
-   GuiControl, Picker:MoveDraw, HSlider, % "y" Round(248 - H * 200)
-   gosub, UpdateColorHolder
-   return
-SChanged:
-   GuiControl, Picker:MoveDraw, SSlider, % "y" Round(248 - S * 200)
-   gosub, UpdateColorHolder
-   return
-VChanged:
-   GuiControl, Picker:MoveDraw, VSlider, % "y" Round(248 - V * 200)
-   gosub, UpdateColorHolder
-   return
-AChanged:
-   GuiControl, Picker:MoveDraw, ASlider, % "y" Round(248 - A * 200)
-   return
+}
+PickColorUnderCursor() {
+   MouseGetPos, MouseX, MouseY
+   PixelGetColor, color, %MouseX%, %MouseY%
+   R := (color & 0x0000ff) / 256
+   G := ((color & 0x00ff00)>>8) / 256
+   B := ((color & 0xff0000)>>16) / 256
+   c := HSV_Convert2HSV(R, G, B)
+   global swatches
+   global currentSwatch
+   swatches[currentSwatch].H := c.H
+   swatches[currentSwatch].S := c.S
+   swatches[currentSwatch].V := c.V
+   gosub, HSVChanged
+}
+SendColorHexCode(WithHash := false, WithAlpha := false) {
+   global swatches
+   global currentSwatch
+   c := HSV_Convert2RGB(swatches[currentSwatch].H, swatches[currentSwatch].S, swatches[currentSwatch].V)
+   RGBColor := Round(c.R*255)<<16|Round(c.G*255)<<8|Round(c.B*255)
+   if (WithAlpha) {
+      Alpha := Round(swatches[currentSwatch].A*255)
+      color := Format("{1:06x}{2:02x}", RGBColor, Alpha)
+   } else {
+      color := Format("{:06x}", RGBColor)
+   }
+   if (WithHash) {
+      color := "#" . color
+   }
+   SendRaw, %color%
+}
+SelectSwatch(n) {
+   global numberOfSwatches
+   if (n is not Number or n < 1 or n > numberOfSwatches)
+      throw Exception("INVALID_INPUT",-1,"Invalid swatch number: " . n)
+   global currentSwatch
+   currentSwatch := n
+   gosub, currentSwatchChanged
+}
 
-UpdateColorHolder:
-   out := HSV_Convert2RGB(H, S, V)
-   RGBColor := Round(out.R*255)<<16|Round(out.G*255)<<8|Round(out.B*255)
-   c := Format("+Background{:06X}",RGBColor)
-   GuiControl, Picker:%c%, %ColorHolder%
-   return
-
-;-------------------- Midi hotkey handler functions ------------------
+;------------------------ Midi hotkey handler functions ----------------------
 ; For CC handler
 ;   param1: cc number
 ;   param2: value
@@ -343,103 +373,119 @@ UpdateColorHolder:
 
 ; HSVA sliders
 slider1(cc, val) {
-   global H
-   H := val / 128 ; Scale to range 0 to 1
+   global swatches
+   global currentSwatch
+   swatches[currentSwatch].H := val / 127 ; Scale to range 0 to 1
    gosub, HChanged
    return
 }
 slider2(cc, val) {
-   global S
-   S := val / 128 ; Scale to range 0 to 1
+   global swatches
+   global currentSwatch
+   swatches[currentSwatch].S := val / 127 ; Scale to range 0 to 1
    gosub, SChanged
    return
 }
 slider3(cc, val) {
-   global V
-   V := val / 128 ; Scale to range 0 to 1
+   global swatches
+   global currentSwatch
+   swatches[currentSwatch].V := val / 127 ; Scale to range 0 to 1
    gosub, VChanged
    return
 }
 slider4(cc, val) {
-   global A
-   A := val / 128 ; Scale to range 0 to 1
+   global swatches
+   global currentSwatch
+   swatches[currentSwatch].A := val / 127 ; Scale to range 0 to 1
    gosub, AChanged
    return
 }
-; Pick color from screen where the cursor is
-rec(note, vel) {
+
+cycle(note, vel) {
    if (vel == 2) {
-      MouseGetPos, MouseX, MouseY
-      PixelGetColor, color, %MouseX%, %MouseY%
-      R := (color & 0x0000ff) / 256
-      G := ((color & 0x00ff00)>>8) / 256
-      B := ((color & 0xff0000)>>16) / 256
-      FileAppend, %R%`n, *
-      FileAppend, %G%`n, *
-      FileAppend, %B%`n`n, *
-      out := HSV_Convert2HSV(R, G, B)
-      global H
-      global S
-      global V
-      H := out.H
-      S := out.S
-      V := out.V
-      gosub, HSVChanged
+      ToggleWindowVisibility()
    }
 }
-; Insert color hex code
-rec3(note, vel) {
+rec(note, vel) {
+   if (vel == 2) {
+      PickColorUnderCursor()
+   }
+}
+rewind(note, vel) {
+   if (vel == 2) {
+      SendColorHexCode()
+   }
+}
+fastForward(note, vel) {
+   if (vel == 2) {
+      SendColorHexCode(true)
+   }
+}
+stop(note, vel) {
+   if (vel == 2) {
+      SendColorHexCode(, true)
+   }
+}
+play(note, vel) {
+   if (vel == 2) {
+      SendColorHexCode(true, true)
+   }
+}
+solo1(note, vel) {
    if (vel == 127) {
-      global H
-      global S
-      global V
-      out := HSV_Convert2RGB(H, S, V)
-      RGBColor := Round(out.R*255)<<16|Round(out.G*255)<<8|Round(out.B*255)
-      color := Format("{:06x}", RGBColor)
-      SendRaw, %color%
+      SelectSwatch(1)
+   }
+}
+solo2(note, vel) {
+   if (vel == 127) {
+      SelectSwatch(2)
+   }
+}
+solo3(note, vel) {
+   if (vel == 127) {
+      SelectSwatch(3)
+   }
+}
+solo4(note, vel) {
+   if (vel == 127) {
+      SelectSwatch(4)
+   }
+}
+mute1(note, vel) {
+   if (vel == 127) {
+      SelectSwatch(5)
+   }
+}
+mute2(note, vel) {
+   if (vel == 127) {
+      SelectSwatch(6)
    }
 }
 mute3(note, vel) {
    if (vel == 127) {
-      global H
-      global S
-      global V
-      out := HSV_Convert2RGB(H, S, V)
-      RGBColor := Round(out.R*255)<<16|Round(out.G*255)<<8|Round(out.B*255)
-      color := Format("#{:06x}", RGBColor)
-      SendRaw, %color%
-   }
-}
-; Insert color hex code with alpha
-rec4(note, vel) {
-   if (vel == 127) {
-      global H
-      global S
-      global V
-      global A
-      out := HSV_Convert2RGB(H, S, V)
-      RGBColor := Round(out.R*255)<<16|Round(out.G*255)<<8|Round(out.B*255)
-      Alpha := Round(A*256)
-      color := Format("{1:06x}{2:02x}", RGBColor, Alpha)
-      SendRaw, %color%
+      SelectSwatch(7)
    }
 }
 mute4(note, vel) {
    if (vel == 127) {
-      global H
-      global S
-      global V
-      global A
-      out := HSV_Convert2RGB(H, S, V)
-      RGBColor := Round(out.R*255)<<16|Round(out.G*255)<<8|Round(out.B*255)
-      Alpha := Round(A*256)
-      color := Format("#{1:06x}{2:02x}", RGBColor, Alpha)
-      SendRaw, %color%
+      SelectSwatch(8)
    }
 }
+;----------------------------------- Hotkeys ---------------------------------
+; To set up hotkeys for the functions, chose a hotkey and call the appropriate function.
+; Examples:
 
-;------------------------------- Includes ----------------------------
-#include %A_ScriptDir%
+; Pause::
+;    ToggleWindowVisibility()
+;    return
+; ^Ins::
+;    SendColorHexCode(true)
+;    return
+
+;----------------------------------- Includes --------------------------------
 #include midi_in_lib.ahk
 #include HSV.ahk
 #include midi_out_functions.ahk
+#include .\canvas\Canvas.ahk
+
+#include ui.ahk
