@@ -34,7 +34,7 @@ A color picker tool to be used with a MIDI controller that has at least four fad
 
 ## How to use
 
-- Clone the repo and run the [nanoKONTROL2_color_picker.ahk](./nanoKONTROL2_color_picker.ahk) script.<br/>
+- Clone the repo or download from the release page and run the [nanoKONTROL2_color_picker.ahk](./nanoKONTROL2_color_picker.ahk) script.<br/>
   Please note that this script needs AutoHotkey version 1.1.31+ to run.<br/>
 - To use this tool with nanoKONTROL2 as is, you need to open [Korg Kontrol Editor](https://www.korg.com/us/support/download/software/0/159/1354/), change the Control Mode to CC, and without changing anything else write the data to the device.<br/>
 - If you are planning to use a different mapping or a different controller, that's cool too, you just have to change the MIDI hotkey mappings and the handler functions in the script accordingly. If you don't know what kind of MIDI messages your controller is generating, use a MIDI monitor like [MIDI-OX](http://www.midiox.com/) to find out.
@@ -47,6 +47,7 @@ A color picker tool to be used with a MIDI controller that has at least four fad
 
 ## Ways to improve
 
+- Display hex and decimal values of the current color.
 - Generalise the script to any MIDI controller, and store the contoller-specific data in config files.
 - Eventually implement the motorized fader and/or infinite knob changes. I currently don't have a device to test this on, so I won't do this in the near future.
 - Make the UI scaleable.
