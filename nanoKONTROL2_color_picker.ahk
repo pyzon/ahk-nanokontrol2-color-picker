@@ -74,14 +74,25 @@ SetWorkingDir %A_ScriptDir%
 CoordMode, Mouse, Window
 CoordMode, Pixel, Window
 
+Menu, Tray, Tip, Color Picker
+Menu, Tray, Icon, images\color_wheel.ico
+Menu, Tray, Click, 1
+Menu, Tray, NoStandard
+Menu, Tray, Add, Open, ShowWindow
+Menu, Tray, Default, Open
+
 OnExit("ExitFunc")
 if (midi_in_Open(0)) ; param: midi in device ID
    ExitApp
+
+Menu, Tray, Add
+Menu, Tray, Add, Exit, ExitApp
 
 hHookMouse := DllCall("SetWindowsHookEx", "int", 14, "Uint", RegisterCallback("Mouse", "Fast"), "Uint", 0, "Uint", 0)
 
 hModule := OpenMidiAPI()
 h_midiout := midiOutOpen(1) ; param: midi out device ID
+
 
 ;------------------------ Sending midi to light up LEDs ----------------------
 ; midiOutShortMsg
@@ -182,6 +193,30 @@ SysGet, CYFIXEDFRAME, 8 ; height of the border of the window
 
 return
 ;------------------------- End of auto execute section -----------------------
+
+ExitApp:
+   ExitApp
+
+PickerGuiClose:
+PickerGuiEscape:
+   WinHide, ahk_id %PickerHwnd%
+   return
+
+ShowWindow:
+   WinShow, ahk_id %PickerHwnd%
+   return
+
+ToggleWindowVisibility() {
+   global guiHidden
+   global PickerHwnd
+   if guiHidden {
+      WinShow, ahk_id %PickerHwnd%
+   } else {
+      WinHide, ahk_id %PickerHwnd%
+   }
+   guiHidden := !guiHidden
+   return
+}
 
 ExitFunc(ExitReason, ExitCode) {
    global h_midiout
@@ -307,22 +342,6 @@ Mouse(nCode, wParam, lParam)
    ; . " flags: " . NumGet(lParam+0, 12, "uint")
    ; . " time: " . NumGet(lParam+0, 16, "uint")
    Return DllCall("CallNextHookEx", "Uint", 0, "int", nCode, "Uint", wParam, "Uint", lParam)
-}
-
-PickerGuiClose:
-PickerGuiEscape:
-   ExitApp
-
-ToggleWindowVisibility() {
-   global guiHidden
-   global PickerHwnd
-   if guiHidden {
-      WinShow, ahk_id %PickerHwnd%
-   } else {
-      WinHide, ahk_id %PickerHwnd%
-   }
-   guiHidden := !guiHidden
-   return
 }
 PickColorUnderCursor() {
    MouseGetPos, MouseX, MouseY
