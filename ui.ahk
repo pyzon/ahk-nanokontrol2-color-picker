@@ -1,19 +1,71 @@
 InitGui:
+    ; Colors
+
+    titleBarColor := 0xff262626
+    backgroundColor := 0xff323232
+    borderColor := 0xff464646
+    checkerColor1 := 0xff5e5e5e
+    checkerColor2 := 0xff878787
+
+    ; Sizes and Positions
+
+    titleBarH := 20
+    bodyH := 270
+    windowW := 310
+    windowH := titleBarH + bodyH
+
+    colorHolderW := 200
+    colorHolderWHalf := colorHolderW / 2
+    colorHolderH := 40
+    colorHolderX := 10
+    colorHolderY := titleBarH + 10
+
+    XY_CtrlW := 200
+    XY_CtrlH := 200
+    XY_CtrlX := 10
+    XY_CtrlY := colorHolderY + colorHolderH + 10
+
+    swatchW := 20
+    swatchWHalf := swatchW / 2
+    swatchH := 20
+    swatchesW := 4 * swatchW
+    swatchesH := 2 * swatchH
+    swatchesX := colorHolderX + colorHolderW + 10
+    swatchesY := titleBarH + 10
+
+    sliderW := 20
+    sliderH := 200
+    Z_SliderX := XY_CtrlX + XY_CtrlW + 20
+    Z_SliderY := swatchesY + swatchesH + 10
+    A_SliderX := Z_SliderX + sliderW + 20
+    A_SliderY := Z_SliderY
+
+    checkerTileW := 5
+    borderW := 1
+
+    crossW := 17 ; full width of the cross
+    crossWH := 8 ; half width of the cross
+    thumbW := 36 ; width of the whole thumb
+    thumbWH := 8 ; width of a single part of the thumb
+    thumbH := 11 ; full height of the thumb
+    thumbHH := 5 ; half height of the thumb
+    squareW := 26 ; full width of the square
+    squareH := squareW ; full height of the square
+    squareE := 3 ; square edge width
+
+    ; Initializing stuff
+
     guiHidden := false
 
-    BackgroundColor := 0xff323232
-    BorderColor := 0xff464646
-    CheckerboardColor1 := 0xff5e5e5e
-    CheckerboardColor2 := 0xff878787
+    Gui, Picker:New, -Caption ToolWindow AlwaysOnTop +HwndPickerHwnd, Color Picker
+    Gui, Picker:Show, w%windowW% h%windowH%
 
-    Gui, Picker:New, ToolWindow AlwaysOnTop +HwndPickerHwnd, Color Picker
-    Gui, Picker:Show, w310 h270
-
-    sf := new Canvas.Surface(310, 270)
+    sf := new Canvas.Surface(windowW, windowH)
     vp := new Canvas.Viewport(PickerHwnd).Attach(sf)
 
-    backgroundBrush := new Canvas.SolidBrush(BackgroundColor)
-    borderBrush := new Canvas.SolidBrush(BorderColor)
+    bgBr := new Canvas.SolidBrush(backgroundColor)
+    tbBr := new Canvas.SolidBrush(titleBarColor)
+    bBr := new Canvas.SolidBrush(borderColor)
 
     cross := new Canvas.Surface
     cross.Load(A_ScriptDir . "\images\cross.png")
@@ -22,9 +74,9 @@ InitGui:
     square := new Canvas.Surface
     square.Load(A_ScriptDir . "\images\square.png")
     
-    ASliderBackground := CheckerboardSurface(20, 200, 5, CheckerboardColor1, CheckerboardColor2)
-    ColorHolderBackground := CheckerboardSurface(100, 40, 5, CheckerboardColor1, CheckerboardColor2)
-    SwatchBackground := CheckerboardSurface(10, 20, 5, CheckerboardColor1, CheckerboardColor2)
+    alphaSliderBackground := CheckerSurface(sliderW, sliderH, checkerTileW, checkerColor1, checkerColor2)
+    colorHolderBackground := CheckerSurface(colorHolderWHalf, colorHolderH, checkerTileW, checkerColor1, checkerColor2)
+    swatchBackground := CheckerSurface(swatchWHalf, swatchH, checkerTileW, checkerColor1, checkerColor2)
     
     gosub, RedrawEverything
 
@@ -33,49 +85,44 @@ InitGui:
 RedrawEverything:
     gosub, InitialDraw
     gosub, UpdateRGB
-    gosub, RedrawSVContoller
-    gosub, RedrawHThumb
-    gosub, RedrawAThumb
-    gosub, RedrawASlider
+    gosub, RedrawXY_Contoller
+    gosub, RedrawZ_Thumb
+    gosub, RedrawA_Thumb
+    gosub, RedrawA_Slider
     gosub, RedrawColorHolder
     gosub, RedrawSwatches
     return
 
 InitialDraw:
-    sf.Clear(BackgroundColor)
+    ; things to draw only once, because they never get updated
+    sf.Clear(backgroundColor)
+    ; title bar
+    sf.FillRectangle(tbBr, 0, 0, windowW, titleBarH)
     ; current color holder borders
-    sf.FillRectangle(borderBrush, 9, 9, 202, 42)
-    ; sf.Line(p, 10, 9, 209, 9)
-    ; sf.Line(p, 10, 50, 209, 50)
-    ; sf.Line(p, 9, 9, 9, 50)
-    ; sf.Line(p, 210, 9, 210, 50)
-    ; H top and bottom borders
-    sf.FillRectangle(borderBrush, 229, 59, 22, 202)
-    ; sf.Line(p, 230, 59, 249, 59)
-    ; sf.Line(p, 230, 260, 249, 260)
-    ; A top and bottom borders
-    sf.FillRectangle(borderBrush, 269, 59, 22, 202)
-    ; sf.Line(p, 270, 59, 289, 59)
-    ; sf.Line(p, 270, 260, 289, 260)
-    ; H slider
+    sf.FillRectangle(bBr, colorHolderX - borderW, colorHolderY - borderW, colorHolderW + 2 * borderW, colorHolderH + 2 * borderW)
+    ; Z slider top and bottom borders
+    sf.FillRectangle(bBr, Z_SliderX, Z_SliderY - borderW, sliderW, sliderH + 2 * borderW)
+    ; A slider top and bottom borders
+    sf.FillRectangle(bBr, A_SliderX, A_SliderY - borderW, sliderW, sliderH + 2 * borderW)
+    ; Hue scale on Z slider
     p := new Canvas.Pen()
-    loop, 200 {
-        c := HSV_Convert2RGB((200 - A_Index) / 199, 1, 1)
+    loop, %sliderH% {
+        c := HSV_Convert2RGB((sliderH - A_Index) / (sliderH - 1), 1, 1)
         p.Color := 0xff<<24|Round(c.R*255)<<16|Round(c.G*255)<<8|Round(c.B*255)
-        sf.Line(p, 230, 60 + A_Index - 1, 249, 60 + A_Index - 1)
+        sf.Line(p, Z_SliderX, Z_SliderY + A_Index - 1, Z_SliderX + sliderW - 1, Z_SliderY + A_Index - 1)
     }
     vp.Refresh()
     return
 
-RedrawSVContoller:
-    sf.FillRectangle(backgroundBrush, 2, 52, 216, 216)
-    sf.FillRectangle(borderBrush, 9, 59, 202, 202)
+RedrawXY_Contoller:
+    sf.FillRectangle(bgBr, XY_CtrlX - crossWH, XY_CtrlY - crossWH, XY_CtrlW + 2 * crossWH, XY_CtrlH + 2 * crossWH)
+    sf.FillRectangle(bBr, XY_CtrlX - borderW, XY_CtrlY - borderW, XY_CtrlW + 2 * borderW, XY_CtrlH + 2 * borderW)
     c := HSV_Convert2RGB(swatches[currentSwatch].H, 1, 1)
     cRGB := Round(c.R*255)<<16|Round(c.G*255)<<8|Round(c.B*255)
-    SGradBrush := new Canvas.LinearGradientBrush([10, 60], [210, 60], 0xffffffff, 0xff<<24|cRGB)
-    sf.FillRectangle(SGradBrush, 10, 60, 200, 200)
-    VGradBrush := new Canvas.LinearGradientBrush([10, 60], [10, 260], 0x00000000, 0xff000000)
-    sf.FillRectangle(VGradBrush, 10, 60, 200, 200)
+    SGradBrush := new Canvas.LinearGradientBrush([XY_CtrlX, XY_CtrlY], [XY_CtrlX + XY_CtrlW, XY_CtrlY], 0xffffffff, 0xff<<24|cRGB)
+    sf.FillRectangle(SGradBrush, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
+    VGradBrush := new Canvas.LinearGradientBrush([XY_CtrlX, XY_CtrlY], [XY_CtrlX, XY_CtrlY + XY_CtrlH], 0x00000000, 0xff000000)
+    sf.FillRectangle(VGradBrush, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
     ; loop, 200 {
     ;     i := A_Index
     ;     loop, 200 {
@@ -85,66 +132,85 @@ RedrawSVContoller:
     ;         sf.SetPixel(10 + i - 1, 60 + j - 1, ARGB)
     ;     }
     ; }
-    sf.Draw(cross, 2 + Round(swatches[currentSwatch].S * 199), 52 + 199 - Round(swatches[currentSwatch].V * 199), 17, 17)
-    vp.Refresh(2, 52, 216, 216)
+    sf.Draw(cross
+        , XY_CtrlX - crossWH + Round(swatches[currentSwatch].S * (XY_CtrlW - 1))
+        , XY_CtrlY - crossWH + (XY_CtrlH - 1) - Round(swatches[currentSwatch].V * (XY_CtrlH - 1))
+        , crossW, crossW)
+    vp.Refresh(XY_CtrlX - crossWH, XY_CtrlY - crossWH, XY_CtrlW + 2 * crossWH, XY_CtrlH + 2 * crossWH)
     return
 
-RedrawHThumb:
-    sf.FillRectangle(backgroundBrush, 222, 55, 8, 210)
-    sf.FillRectangle(backgroundBrush, 250, 55, 8, 210)
-    sf.FillRectangle(borderBrush, 229, 59, 1, 202)
-    sf.FillRectangle(borderBrush, 250, 59, 1, 202)
-    sf.Draw(thumb, 222, 55 + 199 - Round(swatches[currentSwatch].H * 199), 36, 11)
-    vp.Refresh(222, 55, 8, 210)
-    vp.Refresh(250, 55, 8, 210)
+RedrawZ_Thumb:
+    ; clear area under left half of thumb
+    sf.FillRectangle(bgBr, Z_SliderX - thumbWH, Z_SliderY - thumbHH, thumbWH, sliderH + 2 * thumbHH)
+    ; clear area under right half of thumb
+    sf.FillRectangle(bgBr, Z_SliderX + sliderW, Z_SliderY - thumbHH, thumbWH, sliderH + 2 * thumbHH)
+    ; left border
+    sf.FillRectangle(bBr, Z_SliderX - borderW, Z_SliderY - borderW, borderW, sliderH + 2 * borderW)
+    ; right border
+    sf.FillRectangle(bBr, Z_SliderX + sliderW - borderW, Z_SliderY - borderW, borderW, sliderH + 2 * borderW)
+    sf.Draw(thumb
+        , Z_SliderX - thumbWH
+        , Z_SliderY - thumbHH + (sliderH - 1) - Round(swatches[currentSwatch].H * (sliderH - 1))
+        , thumbW, thumbH)
+    vp.Refresh(Z_SliderX - thumbWH, Z_SliderY - thumbHH, thumbWH, sliderH + 2 * thumbHH)
+    vp.Refresh(Z_SliderX + sliderW, Z_SliderY - thumbHH, thumbWH, sliderH + 2 * thumbHH)
     return
 
-RedrawAThumb:
-    sf.FillRectangle(backgroundBrush, 262, 55, 8, 210)
-    sf.FillRectangle(backgroundBrush, 290, 55, 8, 210)
-    sf.FillRectangle(borderBrush, 269, 59, 1, 202)
-    sf.FillRectangle(borderBrush, 290, 59, 1, 202)
-    sf.Draw(thumb, 262, 55 + 199 - Round(swatches[currentSwatch].A * 199), 36, 11)
-    vp.Refresh(262, 55, 8, 210)
-    vp.Refresh(290, 55, 8, 210)
+RedrawA_Thumb:
+    ; clear area under left half of thumb
+    sf.FillRectangle(bgBr, A_SliderX - thumbWH, A_SliderY - thumbHH, thumbWH, sliderH + 2 * thumbHH)
+    sf.FillRectangle(bgBr, A_SliderX + sliderW, A_SliderY - thumbHH, thumbWH, sliderH + 2 * thumbHH)
+    sf.FillRectangle(bBr, A_SliderX - borderW, A_SliderY - borderW, borderW, sliderH + 2 * borderW)
+    sf.FillRectangle(bBr, A_SliderX + sliderW - borderW, A_SliderY - borderW, borderW, sliderH + 2 * borderW)
+    sf.Draw(thumb
+        , A_SliderX - thumbWH
+        , A_SliderY - thumbHH + (sliderH - 1) - Round(swatches[currentSwatch].A * (sliderH - 1))
+        , thumbW, thumbH)
+    vp.Refresh(A_SliderX - thumbWH, A_SliderY - thumbHH, thumbWH, sliderH + 2 * thumbHH)
+    vp.Refresh(A_SliderX + sliderW, A_SliderY - thumbHH, thumbWH, sliderH + 2 * thumbHH)
     return
 
-RedrawASlider:
-    sf.Draw(ASliderBackground, 270, 60, 20, 200)
-    AGradBrush := new Canvas.LinearGradientBrush([270, 60], [270, 260], 0xff<<24|RGB, RGB)
-    sf.FillRectangle(AGradBrush, 270, 60, 20, 200)
-    vp.Refresh(270, 60, 20, 200)
+RedrawA_Slider:
+    sf.Draw(alphaSliderBackground, A_SliderX, A_SliderY, sliderW, sliderH)
+    AGradBrush := new Canvas.LinearGradientBrush([A_SliderX, A_SliderY], [A_SliderX, A_SliderY + sliderH], 0xff<<24|RGB, RGB)
+    sf.FillRectangle(AGradBrush, A_SliderX, A_SliderY, sliderW, sliderH)
+    vp.Refresh(A_SliderX, A_SliderY, sliderW, sliderH)
     return
 
 RedrawColorHolder:
-    sf.Draw(ColorHolderBackground, 110, 10, 100, 40)
-    sf.FillRectangle(new Canvas.SolidBrush(0xff<<24|RGB), 10, 10, 100, 40)
-    sf.FillRectangle(new Canvas.SolidBrush(Round(swatches[currentSwatch].A*255)<<24|RGB), 110, 10, 100, 40)
-    vp.Refresh(10, 10, 200, 40)
+    sf.Draw(colorHolderBackground, colorHolderX + colorHolderWHalf, colorHolderY, colorHolderWHalf, colorHolderH)
+    sf.FillRectangle(new Canvas.SolidBrush(0xff<<24|RGB), colorHolderX, colorHolderY, colorHolderWHalf, colorHolderH)
+    sf.FillRectangle(new Canvas.SolidBrush(Round(swatches[currentSwatch].A*255)<<24|RGB)
+        , colorHolderX + colorHolderWHalf, colorHolderY, colorHolderWHalf, colorHolderH)
+    vp.Refresh(colorHolderX, colorHolderY, colorHolderW, colorHolderH)
     return
 
 RedrawCurrentSwatch:
-    x := 220 + mod(currentSwatch - 1, 4) * 20
-    y := 10 + (currentSwatch - 1) // 4 * 20
-    sf.Draw(SwatchBackground, x + 10, y, 10, 20)
-    sf.FillRectangle(new Canvas.SolidBrush(0xff<<24|RGB), x, y, 10, 20)
-    sf.FillRectangle(new Canvas.SolidBrush(Round(swatches[currentSwatch].A*255)<<24|RGB), x + 10, y, 10, 20)
-    vp.Refresh(x, y, 20, 20)
+    x := swatchesX + mod(currentSwatch - 1, 4) * swatchW
+    y := swatchesY + (currentSwatch - 1) // 4 * swatchH
+    sf.Draw(swatchBackground, x + swatchWHalf, y, swatchWHalf, swatchH)
+    sf.FillRectangle(new Canvas.SolidBrush(0xff<<24|RGB), x, y, swatchWHalf, swatchH)
+    sf.FillRectangle(new Canvas.SolidBrush(Round(swatches[currentSwatch].A*255)<<24|RGB), x + swatchWHalf, y, swatchWHalf, swatchH)
+    vp.Refresh(x, y, swatchW, swatchH)
     return
 
 RedrawSwatches:
-    sf.FillRectangle(backgroundBrush, 217, 7, 86, 46)
+    sf.FillRectangle(bgBr, swatchesX - squareE, swatchesY - squareE, swatchesW + 2 * squareE, swatchesH + 2 * squareE)
+    sf.FillRectangle(bBr, swatchesX - borderW, swatchesY - borderW, swatchesW + 2 * borderW, swatchesH + 2 * borderW)
     for i, sw in swatches {
-        x := 220 + mod(i - 1, 4) * 20
-        y := 10 + (i - 1) // 4 * 20
-        sf.Draw(SwatchBackground, x + 10, y, 10, 20)
+        x := swatchesX + mod(i - 1, 4) * swatchW
+        y := swatchesY + (i - 1) // 4 * swatchH
+        sf.Draw(swatchBackground, x + swatchWHalf, y, swatchWHalf, swatchH)
         c := HSV_Convert2RGB(sw.H, sw.S, sw.V)
         RGB := Round(c.R*255)<<16|Round(c.G*255)<<8|Round(c.B*255)
-        sf.FillRectangle(new Canvas.SolidBrush(0xff<<24|RGB), x, y, 10, 20)
-        sf.FillRectangle(new Canvas.SolidBrush(Round(sw.A*255)<<24|RGB), x + 10, y, 10, 20)
+        sf.FillRectangle(new Canvas.SolidBrush(0xff<<24|RGB), x, y, swatchWHalf, swatchH)
+        sf.FillRectangle(new Canvas.SolidBrush(Round(sw.A*255)<<24|RGB), x + swatchWHalf, y, swatchWHalf, swatchH)
     }
-    sf.Draw(square, 220 + mod(currentSwatch - 1, 4) * 20 - 3, 10 + (currentSwatch - 1) // 4 * 20 - 3, 26, 26)
-    vp.Refresh(217, 7, 86, 46)
+    sf.Draw(square
+        , swatchesX + mod(currentSwatch - 1, 4) * swatchW - squareE
+        , swatchesY + (currentSwatch - 1) // 4 * swatchH - squareE
+        , squareW, squareH)
+    vp.Refresh(swatchesX - squareE, swatchesY - squareE, swatchesW + 2 * squareE, swatchesH + 2 * squareE)
     return
 
 UpdateRGB:
@@ -152,7 +218,7 @@ UpdateRGB:
     RGB := Round(c.R*255)<<16|Round(c.G*255)<<8|Round(c.B*255)
     return
 
-CheckerboardSurface(Width, Height, TileWidth, FirstColor, SecondColor) {
+CheckerSurface(Width, Height, TileWidth, FirstColor, SecondColor) {
     sf := new Canvas.Surface(Width, Height)
     sf.Clear(FirstColor)
     b := new Canvas.SolidBrush(SecondColor)
@@ -182,49 +248,137 @@ CheckerboardSurface(Width, Height, TileWidth, FirstColor, SecondColor) {
 
 HSVChanged:
     gosub, UpdateRGB
-    gosub, RedrawSVContoller
-    gosub, RedrawHThumb
-    gosub, RedrawAThumb
-    gosub, RedrawASlider
+    gosub, RedrawXY_Contoller
+    gosub, RedrawZ_Thumb
+    gosub, RedrawA_Thumb
+    gosub, RedrawA_Slider
     gosub, RedrawColorHolder
     gosub, RedrawCurrentSwatch
     return
 HChanged:
     gosub, UpdateRGB
-    gosub, RedrawSVContoller
-    gosub, RedrawHThumb
-    gosub, RedrawASlider
+    gosub, RedrawXY_Contoller
+    gosub, RedrawZ_Thumb
+    gosub, RedrawA_Slider
     gosub, RedrawColorHolder
     gosub, RedrawCurrentSwatch
     return
 SChanged:
     gosub, UpdateRGB
-    gosub, RedrawSVContoller
-    gosub, RedrawASlider
+    gosub, RedrawXY_Contoller
+    gosub, RedrawA_Slider
     gosub, RedrawColorHolder
     gosub, RedrawCurrentSwatch
     return
 VChanged:
     gosub, UpdateRGB
-    gosub, RedrawSVContoller
-    gosub, RedrawASlider
+    gosub, RedrawXY_Contoller
+    gosub, RedrawA_Slider
     gosub, RedrawColorHolder
     gosub, RedrawCurrentSwatch
     return
 AChanged:
     gosub, UpdateRGB
-    gosub, RedrawAThumb
+    gosub, RedrawA_Thumb
     gosub, RedrawColorHolder
     gosub, RedrawCurrentSwatch
     return
 currentSwatchChanged:
     gosub, UpdateRGB
-    gosub, RedrawSVContoller
-    gosub, RedrawHThumb
-    gosub, RedrawAThumb
-    gosub, RedrawASlider
+    gosub, RedrawXY_Contoller
+    gosub, RedrawZ_Thumb
+    gosub, RedrawA_Thumb
+    gosub, RedrawA_Slider
     gosub, RedrawColorHolder
     gosub, RedrawSwatches
+
+
+Mouse(nCode, wParam, lParam)
+{
+    global
+    Critical
+    ; global currentSlider
+    ; global swatches
+    ; global currentSwatch
+    ; global PickerHwnd
+    ; global XY_CtrlX
+    ; global XY_CtrlY
+    ; global XY_CtrlW
+    ; global XY_CtrlH
+    ; global Z_SliderX
+    ; global Z_SliderY
+    ; global sliderW
+    ; global sliderH
+    WinGetPos, winX, winY,,, ahk_id %PickerHwnd%
+    local x := NumGet(lParam+0, 0, "int") - winX
+    local y := NumGet(lParam+0, 4, "int") - winY
+    switch wParam {
+    case 0x201: ; Left button down
+        if (x >= XY_CtrlX && x < XY_CtrlX + XY_CtrlW && y >= XY_CtrlY && y < XY_CtrlY + XY_CtrlH) {
+            currentSlider := "SV"
+            swatches[currentSwatch].S := (x - XY_CtrlX) / (XY_CtrlW - 1)
+            swatches[currentSwatch].V := ((XY_CtrlH - 1) - (y - XY_CtrlY)) / (XY_CtrlH - 1)
+            gosub, SChanged
+            gosub, VChanged
+        }
+        if (x >= Z_SliderX && x < Z_SliderX + sliderW && y >= Z_SliderY && y < Z_SliderY + sliderH) {
+            currentSlider := "H"
+            swatches[currentSwatch].H := ((sliderH - 1) - (y - Z_SliderY)) / (sliderH - 1)
+            gosub, HChanged
+        }
+        if (x >= A_SliderX && x < A_SliderX + sliderW && y >= A_SliderY && y < A_SliderY + sliderH) {
+            currentSlider := "A"
+            swatches[currentSwatch].A := ((sliderH - 1) - (y - A_SliderY)) / (sliderH - 1)
+            gosub, AChanged
+        }
+        if (x >= swatchesX && x < swatchesX + swatchesW && y >= swatchesY && y < swatchesY + swatchesH) {
+            currentSwatch := ((y - swatchesY) // swatchH) * 4 + ((x - swatchesX) // swatchW) + 1
+            gosub, currentSwatchChanged
+        }
+    case 0x200: ; Mouse move
+        if GetKeyState("LButton") {
+            switch currentSlider {
+            case "SV":
+                ; clamp the value to the edges of the controller
+                swatches[currentSwatch].S := x < XY_CtrlX ? 0
+                : x >= XY_CtrlX + XY_CtrlW ? 1
+                : (x - XY_CtrlX) / (XY_CtrlW - 1)
+                swatches[currentSwatch].V := y < XY_CtrlY ? 1
+                : y >= XY_CtrlY + XY_CtrlH ? 0
+                : ((XY_CtrlH - 1) - (y - XY_CtrlY)) / (XY_CtrlH - 1)
+                gosub, SChanged
+                gosub, VChanged
+            case "H":
+                swatches[currentSwatch].H := y < Z_SliderY ? 1
+                : y >= Z_SliderY + sliderH ? 0
+                : ((sliderH - 1) - (y - Z_SliderY)) / (sliderH - 1)
+                gosub, HChanged
+            case "A":
+                swatches[currentSwatch].A := y < A_SliderY ? 1
+                : y >= A_SliderY + sliderH ? 0
+                : ((sliderH - 1) - (y - A_SliderY)) / (sliderH - 1)
+                gosub, AChanged
+            }
+        }
+    case 0x202: ; Left button up
+        currentSlider := ""
+    }
+    ; A cool tooltip for debugging:
+    ; Tooltip, % (wParam = 0x201 ? "LBUTTONDOWN"
+    ;    : wParam = 0x202 ? "LBUTTONUP"
+    ;    : wParam = 0x200 ? "MOUSEMOVE"
+    ;    : wParam = 0x20A ? "MOUSEWHEEL"
+    ;    : wParam = 0x20E ? "MOUSEWHEEL"
+    ;    : wParam = 0x204 ? "RBUTTONDOWN"
+    ;    : wParam = 0x205 ? "RBUTTONUP"
+    ;    : "?")
+    ; . " ptX: " . NumGet(lParam+0, 0, "int")
+    ; . " ptY: " . NumGet(lParam+0, 4, "int")
+    ; . "`nmouseData: " . NumGet(lParam+0, 10, "short")
+    ; . " flags: " . NumGet(lParam+0, 12, "uint")
+    ; . " time: " . NumGet(lParam+0, 16, "uint")
+    Return DllCall("CallNextHookEx", "Uint", 0, "int", nCode, "Uint", wParam, "Uint", lParam)
+}
 
 #include .\canvas\Canvas.ahk
 #include HSV.ahk

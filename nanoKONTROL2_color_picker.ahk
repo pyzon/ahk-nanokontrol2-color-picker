@@ -187,9 +187,9 @@ gosub, InitGui
 
 currentSlider = "" ; Keeps track of the slider that has been clicked and dragged
 
-SysGet, CYSMCAPTION, 51 ; height of the tool window title bar
-SysGet, CXFIXEDFRAME, 7 ; width of the border of the window
-SysGet, CYFIXEDFRAME, 8 ; height of the border of the window
+; SysGet, CYSMCAPTION, 51 ; height of the tool window title bar
+; SysGet, CXFIXEDFRAME, 7 ; width of the border of the window
+; SysGet, CYFIXEDFRAME, 8 ; height of the border of the window
 
 return
 ;------------------------- End of auto execute section -----------------------
@@ -261,88 +261,6 @@ ExitFunc(ExitReason, ExitCode) {
    ; ExitApp not needed
 }
 
-Mouse(nCode, wParam, lParam)
-{
-   Critical
-   global currentSlider
-   global swatches
-   global currentSwatch
-   global PickerHwnd
-   global CXFIXEDFRAME
-   global CYFIXEDFRAME
-   global CYSMCAPTION
-   WinGetPos, winX, winY,,, ahk_id %PickerHwnd%
-   x := NumGet(lParam+0, 0, "int") - winX - CXFIXEDFRAME
-   y := NumGet(lParam+0, 4, "int") - winY - CYFIXEDFRAME - CYSMCAPTION
-   switch wParam {
-   case 0x201: ; Left button down
-      if (y >= 60 && y < 260) {
-         if (x >= 10 && x < 210) {
-            currentSlider := "SV"
-            swatches[currentSwatch].S := (x - 10) / 199
-            swatches[currentSwatch].V := (199 - (y - 60)) / 199
-            gosub, SChanged
-            gosub, VChanged
-         }
-         if (x >= 230 && x < 250) {
-            currentSlider := "H"
-            swatches[currentSwatch].H := (199 - (y - 60)) / 199
-            gosub, HChanged
-         }
-         if (x >= 270 && x < 290) {
-            currentSlider := "A"
-            swatches[currentSwatch].A := (199 - (y - 60)) / 199
-            gosub, AChanged
-         }
-      }
-      if (y >= 10 && y < 50 && x >= 220 && x < 300) {
-         currentSwatch := ((y - 10) // 20) * 4 + ((x - 220) // 20) + 1
-         gosub, currentSwatchChanged
-      }
-   case 0x200: ; Mouse move
-      if GetKeyState("LButton") {
-         switch currentSlider {
-         case "SV":
-            ; clamp the value to the edges of the controller
-            swatches[currentSwatch].S := x < 10 ? 0
-               : x >= 210 ? 1
-               : (x - 10) / 199
-            swatches[currentSwatch].V := y < 60 ? 1
-               : y >= 260 ? 0
-               : (199 - (y - 60)) / 199
-            gosub, SChanged
-            gosub, VChanged
-         case "H":
-            swatches[currentSwatch].H := y < 60 ? 1
-               : y >= 260 ? 0
-               : (199 - (y - 60)) / 199
-            gosub, HChanged
-         case "A":
-            swatches[currentSwatch].A := y < 60 ? 1
-               : y >= 260 ? 0
-               : (199 - (y - 60)) / 199
-            gosub, AChanged
-         }
-      }
-   case 0x202: ; Left button up
-      currentSlider := ""
-   }
-   ; A cool tooltip for debugging:
-   ; Tooltip, % (wParam = 0x201 ? "LBUTTONDOWN"
-   ;    : wParam = 0x202 ? "LBUTTONUP"
-   ;    : wParam = 0x200 ? "MOUSEMOVE"
-   ;    : wParam = 0x20A ? "MOUSEWHEEL"
-   ;    : wParam = 0x20E ? "MOUSEWHEEL"
-   ;    : wParam = 0x204 ? "RBUTTONDOWN"
-   ;    : wParam = 0x205 ? "RBUTTONUP"
-   ;    : "?")
-   ; . " ptX: " . NumGet(lParam+0, 0, "int")
-   ; . " ptY: " . NumGet(lParam+0, 4, "int")
-   ; . "`nmouseData: " . NumGet(lParam+0, 10, "short")
-   ; . " flags: " . NumGet(lParam+0, 12, "uint")
-   ; . " time: " . NumGet(lParam+0, 16, "uint")
-   Return DllCall("CallNextHookEx", "Uint", 0, "int", nCode, "Uint", wParam, "Uint", lParam)
-}
 PickColorUnderCursor() {
    MouseGetPos, MouseX, MouseY
    PixelGetColor, color, %MouseX%, %MouseY%
