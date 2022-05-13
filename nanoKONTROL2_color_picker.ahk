@@ -273,18 +273,17 @@ PickColorUnderCursor() {
    swatches[currentSwatch].H := c.H
    swatches[currentSwatch].S := c.S
    swatches[currentSwatch].V := c.V
-   gosub, HSVChanged
+   Redraw()
 }
 SendColorHexCode(WithHash := false, WithAlpha := false) {
    global swatches
    global currentSwatch
-   c := HSV_Convert2RGB(swatches[currentSwatch].H, swatches[currentSwatch].S, swatches[currentSwatch].V)
-   RGBColor := Round(c.R*255)<<16|Round(c.G*255)<<8|Round(c.B*255)
+   cRGB := HSV2RGB_Number(swatches[currentSwatch])
    if (WithAlpha) {
       Alpha := Round(swatches[currentSwatch].A*255)
-      color := Format("{1:06x}{2:02x}", RGBColor, Alpha)
+      color := Format("{1:06x}{2:02x}", cRGB, Alpha)
    } else {
-      color := Format("{:06x}", RGBColor)
+      color := Format("{:06x}", cRGB)
    }
    if (WithHash) {
       color := "#" . color
@@ -297,7 +296,7 @@ SelectSwatch(n) {
       throw Exception("INVALID_INPUT",-1,"Invalid swatch number: " . n)
    global currentSwatch
    currentSwatch := n
-   gosub, currentSwatchChanged
+   Redraw()
 }
 
 ;------------------------ Midi hotkey handler functions ----------------------
@@ -313,28 +312,28 @@ slider1(cc, val) {
    global swatches
    global currentSwatch
    swatches[currentSwatch].H := val / 127 ; Scale to range 0 to 1
-   gosub, HChanged
+   Redraw()
    return
 }
 slider2(cc, val) {
    global swatches
    global currentSwatch
    swatches[currentSwatch].S := val / 127 ; Scale to range 0 to 1
-   gosub, SChanged
+   Redraw()
    return
 }
 slider3(cc, val) {
    global swatches
    global currentSwatch
    swatches[currentSwatch].V := val / 127 ; Scale to range 0 to 1
-   gosub, VChanged
+   Redraw()
    return
 }
 slider4(cc, val) {
    global swatches
    global currentSwatch
    swatches[currentSwatch].A := val / 127 ; Scale to range 0 to 1
-   gosub, AChanged
+   Redraw()
    return
 }
 
