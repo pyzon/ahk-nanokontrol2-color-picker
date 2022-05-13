@@ -214,18 +214,6 @@ Mouse(nCode, wParam, lParam)
 {
     global
     Critical
-    ; global currentSlider
-    ; global swatches
-    ; global currentSwatch
-    ; global PickerHwnd
-    ; global XY_CtrlX
-    ; global XY_CtrlY
-    ; global XY_CtrlW
-    ; global XY_CtrlH
-    ; global Z_SliderX
-    ; global Z_SliderY
-    ; global sliderW
-    ; global sliderH
     WinGetPos, winX, winY,,, ahk_id %PickerHwnd%
     local x := NumGet(lParam+0, 0, "int") - winX
     local y := NumGet(lParam+0, 4, "int") - winY

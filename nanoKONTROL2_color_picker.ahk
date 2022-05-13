@@ -187,10 +187,6 @@ gosub, InitGui
 
 currentSlider = "" ; Keeps track of the slider that has been clicked and dragged
 
-; SysGet, CYSMCAPTION, 51 ; height of the tool window title bar
-; SysGet, CXFIXEDFRAME, 7 ; width of the border of the window
-; SysGet, CYFIXEDFRAME, 8 ; height of the border of the window
-
 return
 ;------------------------- End of auto execute section -----------------------
 
