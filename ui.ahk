@@ -19,6 +19,8 @@ InitGui:
     sf := new Canvas.Surface(windowW, windowH)
     vp := new Canvas.Viewport(PickerHwnd).Attach(sf)
 
+    Menu, SettingsMenu, Add, Exit, ExitApplication
+
     Redraw()
 return
 
@@ -324,14 +326,17 @@ Mouse(nCode, wParam, lParam)
     local y := mouseY - winY
     switch wParam {
     case 0x201: ; Left button down
-        if (x >= 0 && x < closeButtonX && y >= 0 && y < titleBarH) {
+        if (x >= menuButtonW && x < closeButtonX && y >= 0 && y < titleBarH) {
             ; TODO: not the whole bar, just the middle
             currentMouseDrag := "winMove"
             winGrabX := x
             winGrabY := y
         }
         if (x >= closeButtonX && x < closeButtonX + closeButtonW && y >= closeButtonY && y < closeButtonY + closeButtonH) {
-            WinHide, ahk_id %PickerHwnd%
+            currentMouseDrag := "close"
+        }
+        if (x >= menuButtonX && x < menuButtonX + menuButtonW && y >= menuButtonY && y < menuButtonY + menuButtonH) {
+            currentMouseDrag := "menu"
         }
         if (x >= XY_CtrlX && x < XY_CtrlX + XY_CtrlW && y >= XY_CtrlY && y < XY_CtrlY + XY_CtrlH) {
             currentMouseDrag := "SV"
@@ -404,6 +409,16 @@ Mouse(nCode, wParam, lParam)
             }
         }
     case 0x202: ; Left button up
+        if (currentMouseDrag = "close") {
+            if (x >= closeButtonX && x < closeButtonX + closeButtonW && y >= closeButtonY && y < closeButtonY + closeButtonH) {
+                WinHide, ahk_id %PickerHwnd%
+            }
+        }
+        if (currentMouseDrag = "menu") {
+            if (x >= menuButtonX && x < menuButtonX + menuButtonW && y >= menuButtonY && y < menuButtonY + menuButtonH) {
+                Menu, SettingsMenu, Show, % menuButtonX, % menuButtonY + menuButtonH
+            }
+        }
         currentMouseDrag := ""
     }
     ; A cool tooltip for debugging:

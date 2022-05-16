@@ -87,7 +87,7 @@ if (midi_in_Open(0)) ; param: midi in device ID
    ExitApp
 
 Menu, Tray, Add
-Menu, Tray, Add, Exit, ExitApp
+Menu, Tray, Add, Exit, ExitApplication
 
 hHookMouse := DllCall("SetWindowsHookEx", "int", 14, "Uint", RegisterCallback("Mouse", "Fast"), "Uint", 0, "Uint", 0)
 
@@ -187,7 +187,7 @@ gosub, InitGui
 return
 ;------------------------- End of auto execute section -----------------------
 
-ExitApp:
+ExitApplication:
 ExitApp
 
 ShowWindow:
