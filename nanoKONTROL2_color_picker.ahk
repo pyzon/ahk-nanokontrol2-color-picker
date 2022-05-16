@@ -73,6 +73,7 @@ SetWorkingDir %A_ScriptDir%
 #SingleInstance
 CoordMode, Mouse, Window
 CoordMode, Pixel, Window
+SetWinDelay, -1
 
 Menu, Tray, Tip, Color Picker
 Menu, Tray, Icon, images\color_wheel.ico
@@ -92,7 +93,6 @@ hHookMouse := DllCall("SetWindowsHookEx", "int", 14, "Uint", RegisterCallback("M
 
 hModule := OpenMidiAPI()
 h_midiout := midiOutOpen(1) ; param: midi out device ID
-
 
 ;------------------------ Sending midi to light up LEDs ----------------------
 ; midiOutShortMsg
@@ -170,7 +170,6 @@ listenCC(41, "slider6", 1)
 listenCC(42, "slider7", 1)
 listenCC(43, "slider8", 1)
 
-
 ; Loading saved state
 numberOfSwatches := 8
 swatches := []
@@ -185,22 +184,16 @@ loop %numberOfSwatches% {
 
 gosub, InitGui
 
-currentSlider = "" ; Keeps track of the slider that has been clicked and dragged
-
 return
 ;------------------------- End of auto execute section -----------------------
 
 ExitApp:
-   ExitApp
-
-PickerGuiClose:
-PickerGuiEscape:
-   WinHide, ahk_id %PickerHwnd%
-   return
+ExitApp
 
 ShowWindow:
    WinShow, ahk_id %PickerHwnd%
-   return
+   WinActivate, ahk_id %PickerHwnd%
+return
 
 ToggleWindowVisibility() {
    global guiHidden
@@ -211,7 +204,7 @@ ToggleWindowVisibility() {
       WinHide, ahk_id %PickerHwnd%
    }
    guiHidden := !guiHidden
-   return
+return
 }
 
 ExitFunc(ExitReason, ExitCode) {
@@ -309,28 +302,28 @@ slider1(cc, val) {
    global currentSwatch
    swatches[currentSwatch].H := val / 127 ; Scale to range 0 to 1
    Redraw()
-   return
+return
 }
 slider2(cc, val) {
    global swatches
    global currentSwatch
    swatches[currentSwatch].S := val / 127 ; Scale to range 0 to 1
    Redraw()
-   return
+return
 }
 slider3(cc, val) {
    global swatches
    global currentSwatch
    swatches[currentSwatch].V := val / 127 ; Scale to range 0 to 1
    Redraw()
-   return
+return
 }
 slider4(cc, val) {
    global swatches
    global currentSwatch
    swatches[currentSwatch].A := val / 127 ; Scale to range 0 to 1
    Redraw()
-   return
+return
 }
 
 cycle(note, vel) {
