@@ -1,3 +1,7 @@
+#include .\canvas\Canvas.ahk
+#include HSV.ahk
+#include .\ui\menu.ahk
+
 InitGui:
     gosub, InitConstants
 
@@ -19,7 +23,7 @@ InitGui:
     sf := new Canvas.Surface(windowW, windowH)
     vp := new Canvas.Viewport(PickerHwnd).Attach(sf)
 
-    Menu, SettingsMenu, Add, Exit, ExitApplication
+    SetUpMenu()
 
     Redraw()
 return
@@ -133,6 +137,8 @@ InitConstants:
     square.Load(A_ScriptDir . "\images\square.png")
     hueSlider := new Canvas.Surface
     hueSlider.Load(A_ScriptDir . "\images\hue_slider.png")
+    hueX := new Canvas.Surface
+    hueX.Load(A_ScriptDir . "\images\hue_x.png")
 return
 
 Redraw() {
@@ -141,8 +147,8 @@ Redraw() {
     DrawTitleBar()
     DrawColorHolder(swatches[currentSwatch])
     DrawSwatches(swatches, currentSwatch)
-    DrawXY_Contoller("H", swatches[currentSwatch])
-    DrawZ_Slider("H", swatches[currentSwatch])
+    DrawXY_Contoller(pickerMode, swatches[currentSwatch])
+    DrawZ_Slider(pickerMode, swatches[currentSwatch])
     DrawA_Slider(swatches[currentSwatch])
     vp.Refresh()
 }
@@ -214,15 +220,22 @@ DrawXY_Contoller(mode, color) {
     local y
     switch mode {
     case "H":
-        local cRGB := HSV2RGB_Number({H: color.H, S: 1, V: 1})
+        local hRGB := HSV2RGB_Number({H: color.H, S: 1, V: 1})
         local SGradBrush := new Canvas.LinearGradientBrush([XY_CtrlX, XY_CtrlY]
         , [XY_CtrlX + XY_CtrlW, XY_CtrlY]
-        , 0xffffffff, 0xff<<24|cRGB)
+        , 0xffffffff, 0xff<<24|hRGB)
         sf.FillRectangle(SGradBrush, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
         local VGradBrush := new Canvas.LinearGradientBrush([XY_CtrlX, XY_CtrlY], [XY_CtrlX, XY_CtrlY + XY_CtrlH]
         , 0x00000000, 0xff000000)
         sf.FillRectangle(VGradBrush, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
         x := color.S
+        y := color.V
+    case "S":
+        sf.Draw(hueX, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
+        local VGradBrush := new Canvas.LinearGradientBrush([XY_CtrlX, XY_CtrlY], [XY_CtrlX, XY_CtrlY + XY_CtrlH]
+        , 0x00000000, 0xff000000)
+        sf.FillRectangle(VGradBrush, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
+        x := color.H
         y := color.V
     }
     sf.Draw(cross
@@ -239,6 +252,14 @@ DrawZ_Slider(mode, color) {
     case "H":
         sf.Draw(hueSlider, Z_SliderX, Z_SliderY, sliderW, sliderH)
         z := color.H
+    case "S":
+        local hvRGBs1 := HSV2RGB_Number({H: color.H, S: 1, V: color.V})
+        local hvRGBs0 := HSV2RGB_Number({H: color.H, S: 0, V: color.V})
+        local SGradBrush := new Canvas.LinearGradientBrush([Z_SliderX, Z_SliderY]
+        , [Z_SliderX, Z_SliderY + sliderH]
+        , 0xff<<24|hvRGBs1, 0xff<<24|hvRGBs0)
+        sf.FillRectangle(SGradBrush, Z_SliderX, Z_SliderY, sliderW, sliderH)
+        z := color.S
     }
     sf.Draw(thumb
     , Z_SliderX - thumbWH
@@ -324,6 +345,9 @@ Mouse(nCode, wParam, lParam)
     local mouseY := NumGet(lParam+0, 4, "int")
     local x := mouseX - winX
     local y := mouseY - winY
+    local colorX
+    local colorY
+    local colorZ
     switch wParam {
     case 0x201: ; Left button down
         if (x >= menuButtonW && x < closeButtonX && y >= 0 && y < titleBarH) {
@@ -339,14 +363,28 @@ Mouse(nCode, wParam, lParam)
             currentMouseDrag := "menu"
         }
         if (x >= XY_CtrlX && x < XY_CtrlX + XY_CtrlW && y >= XY_CtrlY && y < XY_CtrlY + XY_CtrlH) {
-            currentMouseDrag := "SV"
-            swatches[currentSwatch].S := (x - XY_CtrlX) / (XY_CtrlW - 1)
-            swatches[currentSwatch].V := ((XY_CtrlH - 1) - (y - XY_CtrlY)) / (XY_CtrlH - 1)
+            currentMouseDrag := "XY"
+            colorX := (x - XY_CtrlX) / (XY_CtrlW - 1)
+            colorY := ((XY_CtrlH - 1) - (y - XY_CtrlY)) / (XY_CtrlH - 1)
+            switch pickerMode {
+            case "H":
+                swatches[currentSwatch].S := colorX
+                swatches[currentSwatch].V := colorY
+            case "S":
+                swatches[currentSwatch].H := colorX
+                swatches[currentSwatch].V := colorY
+            }
             Redraw()
         }
         if (x >= Z_SliderX && x < Z_SliderX + sliderW && y >= Z_SliderY && y < Z_SliderY + sliderH) {
-            currentMouseDrag := "H"
-            swatches[currentSwatch].H := ((sliderH - 1) - (y - Z_SliderY)) / (sliderH - 1)
+            currentMouseDrag := "Z"
+            colorZ := ((sliderH - 1) - (y - Z_SliderY)) / (sliderH - 1)
+            switch pickerMode {
+            case "H":
+                swatches[currentSwatch].H := colorZ
+            case "S":
+                swatches[currentSwatch].S := colorZ
+            }
             Redraw()
         }
         if (x >= A_SliderX && x < A_SliderX + sliderW && y >= A_SliderY && y < A_SliderY + sliderH) {
@@ -355,7 +393,8 @@ Mouse(nCode, wParam, lParam)
             Redraw()
         }
         if (x >= swatchesX && x < swatchesX + swatchesW && y >= swatchesY && y < swatchesY + swatchesH) {
-            currentSwatch := ((y - swatchesY) // swatchH) * 4 + ((x - swatchesX) // swatchW) + 1
+            SelectSwatch(((y - swatchesY) // swatchH) * 4 + ((x - swatchesX) // swatchW) + 1)
+            ; currentSwatch := ((y - swatchesY) // swatchH) * 4 + ((x - swatchesX) // swatchW) + 1
             Redraw()
         }
     case 0x200: ; Mouse move
@@ -364,19 +403,33 @@ Mouse(nCode, wParam, lParam)
             case "winMove":
                 ; OutputDebug, % mouseX - winGrabX
                 WinMove, Color Picker,, mouseX - winGrabX, mouseY - winGrabY
-            case "SV":
+            case "XY":
                 ; clamp the value to the edges of the controller
-                swatches[currentSwatch].S := x < XY_CtrlX ? 0
+                colorX := x < XY_CtrlX ? 0
                 : x >= XY_CtrlX + XY_CtrlW ? 1
                 : (x - XY_CtrlX) / (XY_CtrlW - 1)
-                swatches[currentSwatch].V := y < XY_CtrlY ? 1
+                colorY := y < XY_CtrlY ? 1
                 : y >= XY_CtrlY + XY_CtrlH ? 0
                 : ((XY_CtrlH - 1) - (y - XY_CtrlY)) / (XY_CtrlH - 1)
+                switch pickerMode {
+                case "H":
+                    swatches[currentSwatch].S := colorX
+                    swatches[currentSwatch].V := colorY
+                case "S":
+                    swatches[currentSwatch].H := colorX
+                    swatches[currentSwatch].V := colorY
+                }
                 Redraw()
-            case "H":
-                swatches[currentSwatch].H := y < Z_SliderY ? 1
+            case "Z":
+                colorZ := y < Z_SliderY ? 1
                 : y >= Z_SliderY + sliderH ? 0
                 : ((sliderH - 1) - (y - Z_SliderY)) / (sliderH - 1)
+                switch pickerMode {
+                case "H":
+                    swatches[currentSwatch].H := colorZ
+                case "S":
+                    swatches[currentSwatch].S := colorZ
+                }
                 Redraw()
             case "A":
                 swatches[currentSwatch].A := y < A_SliderY ? 1
@@ -474,6 +527,3 @@ ShellMessage(wParam, lParam)
         }
     }
 }
-
-#include .\canvas\Canvas.ahk
-#include HSV.ahk

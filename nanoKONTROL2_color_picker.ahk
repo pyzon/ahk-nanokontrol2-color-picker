@@ -174,6 +174,7 @@ listenCC(43, "slider8", 1)
 numberOfSwatches := 8
 swatches := []
 IniRead, currentSwatch, save.ini, General, CurrentSwatch, 1
+IniRead, pickerMode, save.ini, General, PickerMode, "H"
 loop %numberOfSwatches% {
    IniRead, H, save.ini, % "Swatch" . A_Index, H, 1
    IniRead, S, save.ini, % "Swatch" . A_Index, S, 0
@@ -186,6 +187,13 @@ gosub, InitGui
 
 return
 ;------------------------- End of auto execute section -----------------------
+
+#include midi_in_lib.ahk
+#include HSV.ahk
+#include midi_out_functions.ahk
+#include .\canvas\Canvas.ahk
+
+#include ui.ahk
 
 ExitApplication:
 ExitApp
@@ -233,7 +241,9 @@ ExitFunc(ExitReason, ExitCode) {
    global numberOfSwatches
    global swatches
    global currentSwatch
+   global pickerMode
    IniWrite, %currentSwatch%, save.ini, General, CurrentSwatch
+   IniWrite, %pickerMode%, save.ini, General, PickerMode
    loop %numberOfSwatches% {
       H := swatches[A_Index].H
       S := swatches[A_Index].S
@@ -406,11 +416,3 @@ mute4(note, vel) {
 ; ^Ins::
 ;    SendColorHexCode(true)
 ;    return
-
-;----------------------------------- Includes --------------------------------
-#include midi_in_lib.ahk
-#include HSV.ahk
-#include midi_out_functions.ahk
-#include .\canvas\Canvas.ahk
-
-#include ui.ahk
