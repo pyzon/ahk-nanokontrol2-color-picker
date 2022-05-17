@@ -66,236 +66,240 @@ Slider8      | 1       | CC 43    | 0-127     |
 
 */
 
-#NoEnv
-SendMode Input
-SetWorkingDir %A_ScriptDir%
-#Persistent
-#SingleInstance
-CoordMode, Mouse, Window
-CoordMode, Pixel, Window
-SetWinDelay, -1
-
-Menu, Tray, Tip, Color Picker
-Menu, Tray, Icon, images\color_wheel.ico
-Menu, Tray, Click, 1
-Menu, Tray, NoStandard
-Menu, Tray, Add, Open, ShowWindow
-Menu, Tray, Default, Open
-
-OnExit("ExitFunc")
-if (midi_in_Open(0)) ; param: midi in device ID
-   ExitApp
-
-Menu, Tray, Add
-Menu, Tray, Add, Exit, ExitApplication
-
-hHookMouse := DllCall("SetWindowsHookEx", "int", 14, "Uint", RegisterCallback("Mouse", "Fast"), "Uint", 0, "Uint", 0)
-
-hModule := OpenMidiAPI()
-h_midiout := midiOutOpen(1) ; param: midi out device ID
-
-;------------------------ Sending midi to light up LEDs ----------------------
-; midiOutShortMsg
-;   param1: midi out device handle
-;   param2: message type
-;   param3: channel
-;   param4: data1 (note/cc)
-;   param5: data2 (vel/val))
-midiOutShortMsg(h_midiout, "N1", 14, 13, 127)
-midiOutShortMsg(h_midiout, "N1", 14, 14, 127)
-midiOutShortMsg(h_midiout, "N1", 14, 11, 127)
-midiOutShortMsg(h_midiout, "N1", 14, 10, 127)
-midiOutShortMsg(h_midiout, "N1", 14, 12, 127)
-midiOutShortMsg(h_midiout, "N1", 14, 15, 127)
-midiOutShortMsg(h_midiout, "N1", 1, 48, 127)
-midiOutShortMsg(h_midiout, "N1", 1, 49, 127)
-midiOutShortMsg(h_midiout, "N1", 1, 50, 127)
-midiOutShortMsg(h_midiout, "N1", 1, 51, 127)
-midiOutShortMsg(h_midiout, "N1", 1, 60, 127)
-midiOutShortMsg(h_midiout, "N1", 1, 61, 127)
-midiOutShortMsg(h_midiout, "N1", 1, 62, 127)
-midiOutShortMsg(h_midiout, "N1", 1, 63, 127)
-
-;------------------------  MIDI hotkey mappings  ---------------------------
-; see the readme (https://github.com/micahstubbs/midi4ahk) for how these work
-listenCC(0, "trackLeft", 14)
-listenCC(0, "trackRight", 14)
-listenNote(15, "cycle", 14)
-listenNote(33, "markerSet", 14)
-listenCC(35, "markerLeft", 14)
-listenCC(35, "markerRight", 14)
-listenNote(13, "rewind", 14)
-listenNote(14, "fastForward", 14)
-listenNote(11, "stop", 14)
-listenNote(10, "play", 14)
-listenNote(12, "rec", 14)
-listenNote(48, "solo1", 1)
-listenNote(49, "solo2", 1)
-listenNote(50, "solo3", 1)
-listenNote(51, "solo4", 1)
-listenNote(52, "solo5", 1)
-listenNote(53, "solo6", 1)
-listenNote(54, "solo7", 1)
-listenNote(55, "solo8", 1)
-listenNote(60, "mute1", 1)
-listenNote(61, "mute2", 1)
-listenNote(62, "mute3", 1)
-listenNote(63, "mute4", 1)
-listenNote(64, "mute5", 1)
-listenNote(65, "mute6", 1)
-listenNote(66, "mute7", 1)
-listenNote(67, "mute8", 1)
-listenNote(72, "rec1", 1)
-listenNote(73, "rec2", 1)
-listenNote(74, "rec3", 1)
-listenNote(75, "rec4", 1)
-listenNote(76, "rec5", 1)
-listenNote(77, "rec6", 1)
-listenNote(78, "rec7", 1)
-listenNote(79, "rec8", 1)
-listenCC(0, "knob1", 1)
-listenCC(1, "knob2", 1)
-listenCC(2, "knob3", 1)
-listenCC(3, "knob4", 1)
-listenCC(4, "knob5", 1)
-listenCC(5, "knob6", 1)
-listenCC(6, "knob7", 1)
-listenCC(7, "knob8", 1)
-listenCC(36, "slider1", 1)
-listenCC(37, "slider2", 1)
-listenCC(38, "slider3", 1)
-listenCC(39, "slider4", 1)
-listenCC(40, "slider5", 1)
-listenCC(41, "slider6", 1)
-listenCC(42, "slider7", 1)
-listenCC(43, "slider8", 1)
-
-; Loading saved state
-numberOfSwatches := 8
-swatches := []
-IniRead, currentSwatch, save.ini, General, CurrentSwatch, 1
-IniRead, pickerMode, save.ini, General, PickerMode, "H"
-loop %numberOfSwatches% {
-   IniRead, H, save.ini, % "Swatch" . A_Index, H, 1
-   IniRead, S, save.ini, % "Swatch" . A_Index, S, 0
-   IniRead, V, save.ini, % "Swatch" . A_Index, V, 0
-   IniRead, A, save.ini, % "Swatch" . A_Index, A, 1
-   swatches.Push({H:H, S:S, V:V, A:A})
-}
-
-gosub, InitGui
-
+gosub, InitApp
 return
+
 ;------------------------- End of auto execute section -----------------------
 
-#include midi_in_lib.ahk
-#include HSV.ahk
-#include midi_out_functions.ahk
+#include .\midi\midi_in_lib.ahk
+#include .\color\HSV.ahk
+#include .\midi\midi_out_functions.ahk
 #include .\canvas\Canvas.ahk
 
-#include ui.ahk
+#include .\ui\ui.ahk
+
+InitApp:
+    #NoEnv
+    SendMode Input
+    SetWorkingDir %A_ScriptDir%
+    #Persistent
+    #SingleInstance
+    CoordMode, Mouse, Window
+    CoordMode, Pixel, Window
+    SetWinDelay, -1
+
+    Menu, Tray, Tip, Color Picker
+    Menu, Tray, Icon, images\color_wheel.ico
+    Menu, Tray, Click, 1
+    Menu, Tray, NoStandard
+    Menu, Tray, Add, Open, ShowWindow
+    Menu, Tray, Default, Open
+
+    OnExit("ExitFunc")
+    if (midi_in_Open(0)) ; param: midi in device ID
+        ExitApp
+
+    Menu, Tray, Add
+    Menu, Tray, Add, Exit, ExitApplication
+
+    hHookMouse := DllCall("SetWindowsHookEx", "int", 14, "Uint", RegisterCallback("Mouse", "Fast"), "Uint", 0, "Uint", 0)
+
+    hModule := OpenMidiAPI()
+    h_midiout := midiOutOpen(1) ; param: midi out device ID
+
+    ;------------------------ Sending midi to light up LEDs ----------------------
+    ; midiOutShortMsg
+    ;   param1: midi out device handle
+    ;   param2: message type
+    ;   param3: channel
+    ;   param4: data1 (note/cc)
+    ;   param5: data2 (vel/val))
+    midiOutShortMsg(h_midiout, "N1", 14, 13, 127)
+    midiOutShortMsg(h_midiout, "N1", 14, 14, 127)
+    midiOutShortMsg(h_midiout, "N1", 14, 11, 127)
+    midiOutShortMsg(h_midiout, "N1", 14, 10, 127)
+    midiOutShortMsg(h_midiout, "N1", 14, 12, 127)
+    midiOutShortMsg(h_midiout, "N1", 14, 15, 127)
+    midiOutShortMsg(h_midiout, "N1", 1, 48, 127)
+    midiOutShortMsg(h_midiout, "N1", 1, 49, 127)
+    midiOutShortMsg(h_midiout, "N1", 1, 50, 127)
+    midiOutShortMsg(h_midiout, "N1", 1, 51, 127)
+    midiOutShortMsg(h_midiout, "N1", 1, 60, 127)
+    midiOutShortMsg(h_midiout, "N1", 1, 61, 127)
+    midiOutShortMsg(h_midiout, "N1", 1, 62, 127)
+    midiOutShortMsg(h_midiout, "N1", 1, 63, 127)
+
+    ;------------------------  MIDI hotkey mappings  ---------------------------
+    ; see the readme (https://github.com/micahstubbs/midi4ahk) for how these work
+    listenCC(0, "trackLeft", 14)
+    listenCC(0, "trackRight", 14)
+    listenNote(15, "cycle", 14)
+    listenNote(33, "markerSet", 14)
+    listenCC(35, "markerLeft", 14)
+    listenCC(35, "markerRight", 14)
+    listenNote(13, "rewind", 14)
+    listenNote(14, "fastForward", 14)
+    listenNote(11, "stop", 14)
+    listenNote(10, "play", 14)
+    listenNote(12, "rec", 14)
+    listenNote(48, "solo1", 1)
+    listenNote(49, "solo2", 1)
+    listenNote(50, "solo3", 1)
+    listenNote(51, "solo4", 1)
+    listenNote(52, "solo5", 1)
+    listenNote(53, "solo6", 1)
+    listenNote(54, "solo7", 1)
+    listenNote(55, "solo8", 1)
+    listenNote(60, "mute1", 1)
+    listenNote(61, "mute2", 1)
+    listenNote(62, "mute3", 1)
+    listenNote(63, "mute4", 1)
+    listenNote(64, "mute5", 1)
+    listenNote(65, "mute6", 1)
+    listenNote(66, "mute7", 1)
+    listenNote(67, "mute8", 1)
+    listenNote(72, "rec1", 1)
+    listenNote(73, "rec2", 1)
+    listenNote(74, "rec3", 1)
+    listenNote(75, "rec4", 1)
+    listenNote(76, "rec5", 1)
+    listenNote(77, "rec6", 1)
+    listenNote(78, "rec7", 1)
+    listenNote(79, "rec8", 1)
+    listenCC(0, "knob1", 1)
+    listenCC(1, "knob2", 1)
+    listenCC(2, "knob3", 1)
+    listenCC(3, "knob4", 1)
+    listenCC(4, "knob5", 1)
+    listenCC(5, "knob6", 1)
+    listenCC(6, "knob7", 1)
+    listenCC(7, "knob8", 1)
+    listenCC(36, "slider1", 1)
+    listenCC(37, "slider2", 1)
+    listenCC(38, "slider3", 1)
+    listenCC(39, "slider4", 1)
+    listenCC(40, "slider5", 1)
+    listenCC(41, "slider6", 1)
+    listenCC(42, "slider7", 1)
+    listenCC(43, "slider8", 1)
+
+    ; Loading saved state
+    numberOfSwatches := 8
+    swatches := []
+    IniRead, currentSwatch, save.ini, General, CurrentSwatch, 1
+    IniRead, pickerMode, save.ini, General, PickerMode, "Hue"
+    loop %numberOfSwatches% {
+        IniRead, H, save.ini, % "Swatch" . A_Index, H, 1
+        IniRead, S, save.ini, % "Swatch" . A_Index, S, 0
+        IniRead, V, save.ini, % "Swatch" . A_Index, V, 0
+        IniRead, A, save.ini, % "Swatch" . A_Index, A, 1
+        swatches.Push({H:H, S:S, V:V, A:A})
+    }
+
+    gosub, InitGui
+return
 
 ExitApplication:
 ExitApp
 
 ShowWindow:
-   WinShow, ahk_id %PickerHwnd%
-   WinActivate, ahk_id %PickerHwnd%
+    WinShow, ahk_id %PickerHwnd%
+    WinActivate, ahk_id %PickerHwnd%
 return
 
 ToggleWindowVisibility() {
-   global guiHidden
-   global PickerHwnd
-   if guiHidden {
-      WinShow, ahk_id %PickerHwnd%
-   } else {
-      WinHide, ahk_id %PickerHwnd%
-   }
-   guiHidden := !guiHidden
+    global guiHidden
+    global PickerHwnd
+    if guiHidden {
+        WinShow, ahk_id %PickerHwnd%
+    } else {
+        WinHide, ahk_id %PickerHwnd%
+    }
+    guiHidden := !guiHidden
 return
 }
 
 ExitFunc(ExitReason, ExitCode) {
-   global h_midiout
-   ; Turn off LEDs
-   midiOutShortMsg(h_midiout, "N0", 14, 13, 127)
-   midiOutShortMsg(h_midiout, "N0", 14, 14, 127)
-   midiOutShortMsg(h_midiout, "N0", 14, 11, 127)
-   midiOutShortMsg(h_midiout, "N0", 14, 10, 127)
-   midiOutShortMsg(h_midiout, "N0", 14, 12, 127)
-   midiOutShortMsg(h_midiout, "N0", 14, 15, 127)
-   midiOutShortMsg(h_midiout, "N0", 1, 48, 127)
-   midiOutShortMsg(h_midiout, "N0", 1, 49, 127)
-   midiOutShortMsg(h_midiout, "N0", 1, 50, 127)
-   midiOutShortMsg(h_midiout, "N0", 1, 51, 127)
-   midiOutShortMsg(h_midiout, "N0", 1, 60, 127)
-   midiOutShortMsg(h_midiout, "N0", 1, 61, 127)
-   midiOutShortMsg(h_midiout, "N0", 1, 62, 127)
-   midiOutShortMsg(h_midiout, "N0", 1, 63, 127)
-   ; Close MIDI ports
-   midiOutClose(h_midiout)
-   midi_in_Close()
-   ; Unhook mouse
-   DllCall("UnhookWindowsHookEx", "Uint", hHookMouse)
-   ; Save state
-   global numberOfSwatches
-   global swatches
-   global currentSwatch
-   global pickerMode
-   IniWrite, %currentSwatch%, save.ini, General, CurrentSwatch
-   IniWrite, %pickerMode%, save.ini, General, PickerMode
-   loop %numberOfSwatches% {
-      H := swatches[A_Index].H
-      S := swatches[A_Index].S
-      V := swatches[A_Index].V
-      A := swatches[A_Index].A
-      IniWrite, %H%, save.ini, % "Swatch" . A_Index, H
-      IniWrite, %S%, save.ini, % "Swatch" . A_Index, S
-      IniWrite, %V%, save.ini, % "Swatch" . A_Index, V
-      IniWrite, %A%, save.ini, % "Swatch" . A_Index, A
-   }
-   if ErrorLevel {
-      MsgBox, There was an error writing the save.ini file
-   }
-   ; ExitApp not needed
+    global h_midiout
+    ; Turn off LEDs
+    midiOutShortMsg(h_midiout, "N0", 14, 13, 127)
+    midiOutShortMsg(h_midiout, "N0", 14, 14, 127)
+    midiOutShortMsg(h_midiout, "N0", 14, 11, 127)
+    midiOutShortMsg(h_midiout, "N0", 14, 10, 127)
+    midiOutShortMsg(h_midiout, "N0", 14, 12, 127)
+    midiOutShortMsg(h_midiout, "N0", 14, 15, 127)
+    midiOutShortMsg(h_midiout, "N0", 1, 48, 127)
+    midiOutShortMsg(h_midiout, "N0", 1, 49, 127)
+    midiOutShortMsg(h_midiout, "N0", 1, 50, 127)
+    midiOutShortMsg(h_midiout, "N0", 1, 51, 127)
+    midiOutShortMsg(h_midiout, "N0", 1, 60, 127)
+    midiOutShortMsg(h_midiout, "N0", 1, 61, 127)
+    midiOutShortMsg(h_midiout, "N0", 1, 62, 127)
+    midiOutShortMsg(h_midiout, "N0", 1, 63, 127)
+    ; Close MIDI ports
+    midiOutClose(h_midiout)
+    midi_in_Close()
+    ; Unhook mouse
+    DllCall("UnhookWindowsHookEx", "Uint", hHookMouse)
+    ; Save state
+    global numberOfSwatches
+    global swatches
+    global currentSwatch
+    global pickerMode
+    IniWrite, %currentSwatch%, save.ini, General, CurrentSwatch
+    IniWrite, %pickerMode%, save.ini, General, PickerMode
+    loop %numberOfSwatches% {
+        H := swatches[A_Index].H
+        S := swatches[A_Index].S
+        V := swatches[A_Index].V
+        A := swatches[A_Index].A
+        IniWrite, %H%, save.ini, % "Swatch" . A_Index, H
+        IniWrite, %S%, save.ini, % "Swatch" . A_Index, S
+        IniWrite, %V%, save.ini, % "Swatch" . A_Index, V
+        IniWrite, %A%, save.ini, % "Swatch" . A_Index, A
+    }
+    if ErrorLevel {
+        MsgBox, There was an error writing the save.ini file
+    }
+    ; ExitApp not needed
 }
 
 PickColorUnderCursor() {
-   MouseGetPos, MouseX, MouseY
-   PixelGetColor, color, %MouseX%, %MouseY%
-   R := (color & 0x0000ff) / 256
-   G := ((color & 0x00ff00)>>8) / 256
-   B := ((color & 0xff0000)>>16) / 256
-   c := HSV_Convert2HSV(R, G, B)
-   global swatches
-   global currentSwatch
-   swatches[currentSwatch].H := c.H
-   swatches[currentSwatch].S := c.S
-   swatches[currentSwatch].V := c.V
-   Redraw()
+    MouseGetPos, MouseX, MouseY
+    PixelGetColor, color, %MouseX%, %MouseY%
+    R := (color & 0x0000ff) / 256
+    G := ((color & 0x00ff00)>>8) / 256
+    B := ((color & 0xff0000)>>16) / 256
+    c := HSV_Convert2HSV(R, G, B)
+    global swatches
+    global currentSwatch
+    swatches[currentSwatch].H := c.H
+    swatches[currentSwatch].S := c.S
+    swatches[currentSwatch].V := c.V
+    Redraw()
 }
 SendColorHexCode(WithHash := false, WithAlpha := false) {
-   global swatches
-   global currentSwatch
-   cRGB := HSV2RGB_Number(swatches[currentSwatch])
-   if (WithAlpha) {
-      Alpha := Round(swatches[currentSwatch].A*255)
-      color := Format("{1:06x}{2:02x}", cRGB, Alpha)
-   } else {
-      color := Format("{:06x}", cRGB)
-   }
-   if (WithHash) {
-      color := "#" . color
-   }
-   SendRaw, %color%
+    global swatches
+    global currentSwatch
+    cRGB := HSV2RGB_Number(swatches[currentSwatch])
+    if (WithAlpha) {
+        Alpha := Round(swatches[currentSwatch].A*255)
+        color := Format("{1:06x}{2:02x}", cRGB, Alpha)
+    } else {
+        color := Format("{:06x}", cRGB)
+    }
+    if (WithHash) {
+        color := "#" . color
+    }
+    SendRaw, %color%
 }
 SelectSwatch(n) {
-   global numberOfSwatches
-   if (n is not Number or n < 1 or n > numberOfSwatches)
-      throw Exception("INVALID_INPUT",-1,"Invalid swatch number: " . n)
-   global currentSwatch
-   currentSwatch := n
-   Redraw()
+    global numberOfSwatches
+    if (n is not Number or n < 1 or n > numberOfSwatches)
+        throw Exception("INVALID_INPUT",-1,"Invalid swatch number: " . n)
+    global currentSwatch
+    currentSwatch := n
+    Redraw()
 }
 
 ;------------------------ Midi hotkey handler functions ----------------------
@@ -308,103 +312,103 @@ SelectSwatch(n) {
 
 ; HSVA sliders
 slider1(cc, val) {
-   global swatches
-   global currentSwatch
-   swatches[currentSwatch].H := val / 127 ; Scale to range 0 to 1
-   Redraw()
+    global swatches
+    global currentSwatch
+    swatches[currentSwatch].H := val / 127 ; Scale to range 0 to 1
+    Redraw()
 return
 }
 slider2(cc, val) {
-   global swatches
-   global currentSwatch
-   swatches[currentSwatch].S := val / 127 ; Scale to range 0 to 1
-   Redraw()
+    global swatches
+    global currentSwatch
+    swatches[currentSwatch].S := val / 127 ; Scale to range 0 to 1
+    Redraw()
 return
 }
 slider3(cc, val) {
-   global swatches
-   global currentSwatch
-   swatches[currentSwatch].V := val / 127 ; Scale to range 0 to 1
-   Redraw()
+    global swatches
+    global currentSwatch
+    swatches[currentSwatch].V := val / 127 ; Scale to range 0 to 1
+    Redraw()
 return
 }
 slider4(cc, val) {
-   global swatches
-   global currentSwatch
-   swatches[currentSwatch].A := val / 127 ; Scale to range 0 to 1
-   Redraw()
+    global swatches
+    global currentSwatch
+    swatches[currentSwatch].A := val / 127 ; Scale to range 0 to 1
+    Redraw()
 return
 }
 
 cycle(note, vel) {
-   if (vel == 2) {
-      ToggleWindowVisibility()
-   }
+    if (vel == 2) {
+        ToggleWindowVisibility()
+    }
 }
 rec(note, vel) {
-   if (vel == 2) {
-      PickColorUnderCursor()
-   }
+    if (vel == 2) {
+        PickColorUnderCursor()
+    }
 }
 rewind(note, vel) {
-   if (vel == 2) {
-      SendColorHexCode()
-   }
+    if (vel == 2) {
+        SendColorHexCode()
+    }
 }
 fastForward(note, vel) {
-   if (vel == 2) {
-      SendColorHexCode(true)
-   }
+    if (vel == 2) {
+        SendColorHexCode(true)
+    }
 }
 stop(note, vel) {
-   if (vel == 2) {
-      SendColorHexCode(, true)
-   }
+    if (vel == 2) {
+        SendColorHexCode(, true)
+    }
 }
 play(note, vel) {
-   if (vel == 2) {
-      SendColorHexCode(true, true)
-   }
+    if (vel == 2) {
+        SendColorHexCode(true, true)
+    }
 }
 solo1(note, vel) {
-   if (vel == 127) {
-      SelectSwatch(1)
-   }
+    if (vel == 127) {
+        SelectSwatch(1)
+    }
 }
 solo2(note, vel) {
-   if (vel == 127) {
-      SelectSwatch(2)
-   }
+    if (vel == 127) {
+        SelectSwatch(2)
+    }
 }
 solo3(note, vel) {
-   if (vel == 127) {
-      SelectSwatch(3)
-   }
+    if (vel == 127) {
+        SelectSwatch(3)
+    }
 }
 solo4(note, vel) {
-   if (vel == 127) {
-      SelectSwatch(4)
-   }
+    if (vel == 127) {
+        SelectSwatch(4)
+    }
 }
 mute1(note, vel) {
-   if (vel == 127) {
-      SelectSwatch(5)
-   }
+    if (vel == 127) {
+        SelectSwatch(5)
+    }
 }
 mute2(note, vel) {
-   if (vel == 127) {
-      SelectSwatch(6)
-   }
+    if (vel == 127) {
+        SelectSwatch(6)
+    }
 }
 mute3(note, vel) {
-   if (vel == 127) {
-      SelectSwatch(7)
-   }
+    if (vel == 127) {
+        SelectSwatch(7)
+    }
 }
 mute4(note, vel) {
-   if (vel == 127) {
-      SelectSwatch(8)
-   }
+    if (vel == 127) {
+        SelectSwatch(8)
+    }
 }
 ;----------------------------------- Hotkeys ---------------------------------
 ; To set up hotkeys for the functions, chose a hotkey and call the appropriate function.

@@ -1,6 +1,7 @@
 #include .\canvas\Canvas.ahk
-#include HSV.ahk
+#include .\color\HSV.ahk
 #include .\ui\menu.ahk
+#include .\ui\mouse.ahk
 
 InitGui:
     gosub, InitConstants
@@ -219,7 +220,7 @@ DrawXY_Contoller(mode, color) {
     local x
     local y
     switch mode {
-    case "H":
+    case "Hue":
         local hRGB := HSV2RGB_Number({H: color.H, S: 1, V: 1})
         local SGradBrush := new Canvas.LinearGradientBrush([XY_CtrlX, XY_CtrlY]
         , [XY_CtrlX + XY_CtrlW, XY_CtrlY]
@@ -230,7 +231,7 @@ DrawXY_Contoller(mode, color) {
         sf.FillRectangle(VGradBrush, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
         x := color.S
         y := color.V
-    case "S":
+    case "Saturation":
         sf.Draw(hueX, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
         local VGradBrush := new Canvas.LinearGradientBrush([XY_CtrlX, XY_CtrlY], [XY_CtrlX, XY_CtrlY + XY_CtrlH]
         , 0x00000000, 0xff000000)
@@ -249,10 +250,10 @@ DrawZ_Slider(mode, color) {
     DrawBorder(sf, Z_SliderX, Z_SliderY, sliderW, sliderH, borderW, borderBr)
     local z
     switch mode {
-    case "H":
+    case "Hue":
         sf.Draw(hueSlider, Z_SliderX, Z_SliderY, sliderW, sliderH)
         z := color.H
-    case "S":
+    case "Saturation":
         local hvRGBs1 := HSV2RGB_Number({H: color.H, S: 1, V: color.V})
         local hvRGBs0 := HSV2RGB_Number({H: color.H, S: 0, V: color.V})
         local SGradBrush := new Canvas.LinearGradientBrush([Z_SliderX, Z_SliderY]
@@ -334,161 +335,6 @@ DrawBorder(Surface, X, Y, Width, Height, BorderWidth, BorderBrush) {
 HSV2RGB_Number(color) {
     c := HSV_Convert2RGB(color.H, color.S, color.V)
     return Round(c.R*255)<<16|Round(c.G*255)<<8|Round(c.B*255)
-}
-
-Mouse(nCode, wParam, lParam)
-{
-    global
-    Critical
-    WinGetPos, winX, winY,,, ahk_id %PickerHwnd%
-    local mouseX := NumGet(lParam+0, 0, "int")
-    local mouseY := NumGet(lParam+0, 4, "int")
-    local x := mouseX - winX
-    local y := mouseY - winY
-    local colorX
-    local colorY
-    local colorZ
-    switch wParam {
-    case 0x201: ; Left button down
-        if (x >= menuButtonW && x < closeButtonX && y >= 0 && y < titleBarH) {
-            ; TODO: not the whole bar, just the middle
-            currentMouseDrag := "winMove"
-            winGrabX := x
-            winGrabY := y
-        }
-        if (x >= closeButtonX && x < closeButtonX + closeButtonW && y >= closeButtonY && y < closeButtonY + closeButtonH) {
-            currentMouseDrag := "close"
-        }
-        if (x >= menuButtonX && x < menuButtonX + menuButtonW && y >= menuButtonY && y < menuButtonY + menuButtonH) {
-            currentMouseDrag := "menu"
-        }
-        if (x >= XY_CtrlX && x < XY_CtrlX + XY_CtrlW && y >= XY_CtrlY && y < XY_CtrlY + XY_CtrlH) {
-            currentMouseDrag := "XY"
-            colorX := (x - XY_CtrlX) / (XY_CtrlW - 1)
-            colorY := ((XY_CtrlH - 1) - (y - XY_CtrlY)) / (XY_CtrlH - 1)
-            switch pickerMode {
-            case "H":
-                swatches[currentSwatch].S := colorX
-                swatches[currentSwatch].V := colorY
-            case "S":
-                swatches[currentSwatch].H := colorX
-                swatches[currentSwatch].V := colorY
-            }
-            Redraw()
-        }
-        if (x >= Z_SliderX && x < Z_SliderX + sliderW && y >= Z_SliderY && y < Z_SliderY + sliderH) {
-            currentMouseDrag := "Z"
-            colorZ := ((sliderH - 1) - (y - Z_SliderY)) / (sliderH - 1)
-            switch pickerMode {
-            case "H":
-                swatches[currentSwatch].H := colorZ
-            case "S":
-                swatches[currentSwatch].S := colorZ
-            }
-            Redraw()
-        }
-        if (x >= A_SliderX && x < A_SliderX + sliderW && y >= A_SliderY && y < A_SliderY + sliderH) {
-            currentMouseDrag := "A"
-            swatches[currentSwatch].A := ((sliderH - 1) - (y - A_SliderY)) / (sliderH - 1)
-            Redraw()
-        }
-        if (x >= swatchesX && x < swatchesX + swatchesW && y >= swatchesY && y < swatchesY + swatchesH) {
-            SelectSwatch(((y - swatchesY) // swatchH) * 4 + ((x - swatchesX) // swatchW) + 1)
-            ; currentSwatch := ((y - swatchesY) // swatchH) * 4 + ((x - swatchesX) // swatchW) + 1
-            Redraw()
-        }
-    case 0x200: ; Mouse move
-        if GetKeyState("LButton") {
-            switch currentMouseDrag {
-            case "winMove":
-                ; OutputDebug, % mouseX - winGrabX
-                WinMove, Color Picker,, mouseX - winGrabX, mouseY - winGrabY
-            case "XY":
-                ; clamp the value to the edges of the controller
-                colorX := x < XY_CtrlX ? 0
-                : x >= XY_CtrlX + XY_CtrlW ? 1
-                : (x - XY_CtrlX) / (XY_CtrlW - 1)
-                colorY := y < XY_CtrlY ? 1
-                : y >= XY_CtrlY + XY_CtrlH ? 0
-                : ((XY_CtrlH - 1) - (y - XY_CtrlY)) / (XY_CtrlH - 1)
-                switch pickerMode {
-                case "H":
-                    swatches[currentSwatch].S := colorX
-                    swatches[currentSwatch].V := colorY
-                case "S":
-                    swatches[currentSwatch].H := colorX
-                    swatches[currentSwatch].V := colorY
-                }
-                Redraw()
-            case "Z":
-                colorZ := y < Z_SliderY ? 1
-                : y >= Z_SliderY + sliderH ? 0
-                : ((sliderH - 1) - (y - Z_SliderY)) / (sliderH - 1)
-                switch pickerMode {
-                case "H":
-                    swatches[currentSwatch].H := colorZ
-                case "S":
-                    swatches[currentSwatch].S := colorZ
-                }
-                Redraw()
-            case "A":
-                swatches[currentSwatch].A := y < A_SliderY ? 1
-                : y >= A_SliderY + sliderH ? 0
-                : ((sliderH - 1) - (y - A_SliderY)) / (sliderH - 1)
-                Redraw()
-            }
-        } else {
-            if (x >= closeButtonX && x < closeButtonX + closeButtonW && y >= closeButtonY && y < closeButtonY + closeButtonH) {
-                if (!closeButtonHover) {
-                    closeButtonHover := true
-                    Redraw()
-                }
-            } else {
-                if (closeButtonHover) {
-                    closeButtonHover := false
-                    Redraw()
-                }
-            }
-            if (x >= menuButtonX && x < menuButtonX + menuButtonW && y >= menuButtonY && y < menuButtonY + menuButtonH) {
-                if (!menuButtonHover) {
-                    menuButtonHover := true
-                    Redraw()
-                }
-            } else {
-                if (menuButtonHover) {
-                    menuButtonHover := false
-                    Redraw()
-                }
-            }
-        }
-    case 0x202: ; Left button up
-        if (currentMouseDrag = "close") {
-            if (x >= closeButtonX && x < closeButtonX + closeButtonW && y >= closeButtonY && y < closeButtonY + closeButtonH) {
-                WinHide, ahk_id %PickerHwnd%
-            }
-        }
-        if (currentMouseDrag = "menu") {
-            if (x >= menuButtonX && x < menuButtonX + menuButtonW && y >= menuButtonY && y < menuButtonY + menuButtonH) {
-                Menu, SettingsMenu, Show, % menuButtonX, % menuButtonY + menuButtonH
-            }
-        }
-        currentMouseDrag := ""
-    }
-    ; A cool tooltip for debugging:
-    ; Tooltip, % (wParam = 0x201 ? "LBUTTONDOWN"
-    ;    : wParam = 0x202 ? "LBUTTONUP"
-    ;    : wParam = 0x200 ? "MOUSEMOVE"
-    ;    : wParam = 0x20A ? "MOUSEWHEEL"
-    ;    : wParam = 0x20E ? "MOUSEWHEEL"
-    ;    : wParam = 0x204 ? "RBUTTONDOWN"
-    ;    : wParam = 0x205 ? "RBUTTONUP"
-    ;    : "?")
-    ; . " ptX: " . NumGet(lParam+0, 0, "int")
-    ; . " ptY: " . NumGet(lParam+0, 4, "int")
-    ; . "`nmouseData: " . NumGet(lParam+0, 10, "short")
-    ; . " flags: " . NumGet(lParam+0, 12, "uint")
-    ; . " time: " . NumGet(lParam+0, 16, "uint")
-    Return DllCall("CallNextHookEx", "Uint", 0, "int", nCode, "Uint", wParam, "Uint", lParam)
 }
 
 FrameShadow(HGui) {
