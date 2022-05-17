@@ -17,43 +17,25 @@ Mouse(nCode, wParam, lParam)
             winGrabX := x
             winGrabY := y
         }
-        if (InBoundaries(x, y, closeButtonX, closeButtonY, closeButtonW, closeButtonH)) {
+        if (InBoundariesOfCloseButton(x, y)) {
             currentMouseDrag := "close"
         }
-        if (InBoundaries(x, y, menuButtonX, menuButtonY, menuButtonW, menuButtonH)) {
+        if (InBoundariesOfMenuButton(x, y)) {
             currentMouseDrag := "menu"
         }
-        if (InBoundaries(x, y, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)) {
+        if (InBoundariesOfXY(x, y)) {
             currentMouseDrag := "XY"
-            colorX := (x - XY_CtrlX) / (XY_CtrlW - 1)
-            colorY := ((XY_CtrlH - 1) - (y - XY_CtrlY)) / (XY_CtrlH - 1)
-            switch pickerMode {
-            case "Hue":
-                swatches[currentSwatch].S := colorX
-                swatches[currentSwatch].V := colorY
-            case "Saturation":
-                swatches[currentSwatch].H := colorX
-                swatches[currentSwatch].V := colorY
-            }
-            Redraw()
+            SetCurrentColorXY(x, y)
         }
-        if (InBoundaries(x, y, Z_SliderX, Z_SliderY, sliderW, sliderH)) {
+        if (InBoundariesOfZ(x, y)) {
             currentMouseDrag := "Z"
-            colorZ := ((sliderH - 1) - (y - Z_SliderY)) / (sliderH - 1)
-            switch pickerMode {
-            case "Hue":
-                swatches[currentSwatch].H := colorZ
-            case "Saturation":
-                swatches[currentSwatch].S := colorZ
-            }
-            Redraw()
+            SetCurrentColorZ(y)
         }
-        if (InBoundaries(x, y, A_SliderX, A_SliderY, sliderW, sliderH)) {
+        if (InBoundariesOfA(x, y)) {
             currentMouseDrag := "A"
-            swatches[currentSwatch].A := ((sliderH - 1) - (y - A_SliderY)) / (sliderH - 1)
-            Redraw()
+            SetCurrentColorA(y)
         }
-        if (InBoundaries(x, y, swatchesX, swatchesY, swatchesW, swatchesH)) {
+        if (InBoundariesOfSwatches(x, y)) {
             SelectSwatch(((y - swatchesY) // swatchH) * 4 + ((x - swatchesX) // swatchW) + 1)
             ; currentSwatch := ((y - swatchesY) // swatchH) * 4 + ((x - swatchesX) // swatchW) + 1
             Redraw()
@@ -65,41 +47,14 @@ Mouse(nCode, wParam, lParam)
                 ; OutputDebug, % mouseX - winGrabX
                 WinMove, Color Picker,, mouseX - winGrabX, mouseY - winGrabY
             case "XY":
-                ; clamp the value to the edges of the controller
-                colorX := x < XY_CtrlX ? 0
-                : x >= XY_CtrlX + XY_CtrlW ? 1
-                : (x - XY_CtrlX) / (XY_CtrlW - 1)
-                colorY := y < XY_CtrlY ? 1
-                : y >= XY_CtrlY + XY_CtrlH ? 0
-                : ((XY_CtrlH - 1) - (y - XY_CtrlY)) / (XY_CtrlH - 1)
-                switch pickerMode {
-                case "Hue":
-                    swatches[currentSwatch].S := colorX
-                    swatches[currentSwatch].V := colorY
-                case "Saturation":
-                    swatches[currentSwatch].H := colorX
-                    swatches[currentSwatch].V := colorY
-                }
-                Redraw()
+                SetCurrentColorXY(x, y)
             case "Z":
-                colorZ := y < Z_SliderY ? 1
-                : y >= Z_SliderY + sliderH ? 0
-                : ((sliderH - 1) - (y - Z_SliderY)) / (sliderH - 1)
-                switch pickerMode {
-                case "Hue":
-                    swatches[currentSwatch].H := colorZ
-                case "Saturation":
-                    swatches[currentSwatch].S := colorZ
-                }
-                Redraw()
+                SetCurrentColorZ(y)
             case "A":
-                swatches[currentSwatch].A := y < A_SliderY ? 1
-                : y >= A_SliderY + sliderH ? 0
-                : ((sliderH - 1) - (y - A_SliderY)) / (sliderH - 1)
-                Redraw()
+                SetCurrentColorA(y)
             }
         } else {
-            if (InBoundaries(x, y, closeButtonX, closeButtonY, closeButtonW, closeButtonH)) {
+            if (InBoundariesOfCloseButton(x, y)) {
                 if (!closeButtonHover) {
                     closeButtonHover := true
                     Redraw()
@@ -110,7 +65,7 @@ Mouse(nCode, wParam, lParam)
                     Redraw()
                 }
             }
-            if (InBoundaries(x, y, menuButtonX, menuButtonY, menuButtonW, menuButtonH)) {
+            if (InBoundariesOfMenuButton(x, y)) {
                 if (!menuButtonHover) {
                     menuButtonHover := true
                     Redraw()
@@ -124,12 +79,12 @@ Mouse(nCode, wParam, lParam)
         }
     case 0x202: ; Left button up
         if (currentMouseDrag = "close") {
-            if (InBoundaries(x, y, closeButtonX, closeButtonY, closeButtonW, closeButtonH)) {
+            if (InBoundariesOfCloseButton(x, y)) {
                 WinHide, ahk_id %PickerHwnd%
             }
         }
         if (currentMouseDrag = "menu") {
-            if (InBoundaries(x, y, menuButtonX, menuButtonY, menuButtonW, menuButtonH)) {
+            if (InBoundariesOfMenuButton(x, y)) {
                 Menu, SettingsMenu, Show, % menuButtonX, % menuButtonY + menuButtonH
             }
         }
@@ -154,4 +109,69 @@ Mouse(nCode, wParam, lParam)
 
 InBoundaries(x, y, boxX, boxY, boxW, boxH) {
     return x >= boxX && x < boxX + boxW && y >= boxY && y < boxY + boxH
+}
+InBoundariesOfMenuButton(x, y) {
+    global
+    return InBoundaries(x, y, menuButtonX, menuButtonY, menuButtonW, menuButtonH)
+}
+InBoundariesOfCloseButton(x, y) {
+    global
+    return InBoundaries(x, y, closeButtonX, closeButtonY, closeButtonW, closeButtonH)
+}
+InBoundariesOfXY(x, y) {
+    global
+    return InBoundaries(x, y, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
+}
+InBoundariesOfZ(x, y) {
+    global
+    return InBoundaries(x, y, Z_SliderX, Z_SliderY, sliderW, sliderH)
+}
+InBoundariesOfA(x, y) {
+    global
+    return InBoundaries(x, y, A_SliderX, A_SliderY, sliderW, sliderH)
+}
+InBoundariesOfSwatches(x, y) {
+    global
+    return InBoundaries(x, y, swatchesX, swatchesY, swatchesW, swatchesH)
+}
+
+SetCurrentColorXY(x, y) {
+    global
+    ; clamp the value to the edges of the controller
+    local colorX := x < XY_CtrlX ? 0
+    : x >= XY_CtrlX + XY_CtrlW ? 1
+    : (x - XY_CtrlX) / (XY_CtrlW - 1)
+    local colorY := y < XY_CtrlY ? 1
+    : y >= XY_CtrlY + XY_CtrlH ? 0
+    : ((XY_CtrlH - 1) - (y - XY_CtrlY)) / (XY_CtrlH - 1)
+    switch pickerMode {
+    case "Hue":
+        swatches[currentSwatch].S := colorX
+        swatches[currentSwatch].V := colorY
+    case "Saturation":
+        swatches[currentSwatch].H := colorX
+        swatches[currentSwatch].V := colorY
+    }
+    Redraw()
+}
+SetCurrentColorZ(z) {
+    global
+    ; clamp the value to the top and bottom of the slider
+    colorZ := z < Z_SliderY ? 1
+    : z >= Z_SliderY + sliderH ? 0
+    : ((sliderH - 1) - (z - Z_SliderY)) / (sliderH - 1)
+    switch pickerMode {
+    case "Hue":
+        swatches[currentSwatch].H := colorZ
+    case "Saturation":
+        swatches[currentSwatch].S := colorZ
+    }
+    Redraw()
+}
+SetCurrentColorA(a) {
+    global
+    swatches[currentSwatch].A := a < A_SliderY ? 1
+    : a >= A_SliderY + sliderH ? 0
+    : ((sliderH - 1) - (a - A_SliderY)) / (sliderH - 1)
+    Redraw()
 }
