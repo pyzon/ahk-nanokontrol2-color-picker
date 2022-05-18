@@ -7,88 +7,13 @@ Mouse(nCode, wParam, lParam)
     local mouseY := NumGet(lParam+0, 4, "int")
     local x := mouseX - winX
     local y := mouseY - winY
-    local colorX
-    local colorY
-    local colorZ
     switch wParam {
     case 0x201: ; Left button down
-        if (InBoundaries(x, y, menuButtonW, 0, closeButtonX - menuButtonW, titleBarH)) {
-            currentMouseDrag := "winMove"
-            winGrabX := x
-            winGrabY := y
-        }
-        if (InBoundariesOfCloseButton(x, y)) {
-            currentMouseDrag := "close"
-        }
-        if (InBoundariesOfMenuButton(x, y)) {
-            currentMouseDrag := "menu"
-        }
-        if (InBoundariesOfXY(x, y)) {
-            currentMouseDrag := "XY"
-            SetCurrentColorXY(x, y)
-        }
-        if (InBoundariesOfZ(x, y)) {
-            currentMouseDrag := "Z"
-            SetCurrentColorZ(y)
-        }
-        if (InBoundariesOfA(x, y)) {
-            currentMouseDrag := "A"
-            SetCurrentColorA(y)
-        }
-        if (InBoundariesOfSwatches(x, y)) {
-            SelectSwatch(((y - swatchesY) // swatchH) * 4 + ((x - swatchesX) // swatchW) + 1)
-            ; currentSwatch := ((y - swatchesY) // swatchH) * 4 + ((x - swatchesX) // swatchW) + 1
-            Redraw()
-        }
+        HandleMouseLeftDown(x, y)
     case 0x200: ; Mouse move
-        if GetKeyState("LButton") {
-            switch currentMouseDrag {
-            case "winMove":
-                ; OutputDebug, % mouseX - winGrabX
-                WinMove, Color Picker,, mouseX - winGrabX, mouseY - winGrabY
-            case "XY":
-                SetCurrentColorXY(x, y)
-            case "Z":
-                SetCurrentColorZ(y)
-            case "A":
-                SetCurrentColorA(y)
-            }
-        } else {
-            if (InBoundariesOfCloseButton(x, y)) {
-                if (!closeButtonHover) {
-                    closeButtonHover := true
-                    Redraw()
-                }
-            } else {
-                if (closeButtonHover) {
-                    closeButtonHover := false
-                    Redraw()
-                }
-            }
-            if (InBoundariesOfMenuButton(x, y)) {
-                if (!menuButtonHover) {
-                    menuButtonHover := true
-                    Redraw()
-                }
-            } else {
-                if (menuButtonHover) {
-                    menuButtonHover := false
-                    Redraw()
-                }
-            }
-        }
+        HandleMouseMove(x, y, mouseX, mouseY)
     case 0x202: ; Left button up
-        if (currentMouseDrag = "close") {
-            if (InBoundariesOfCloseButton(x, y)) {
-                WinHide, ahk_id %PickerHwnd%
-            }
-        }
-        if (currentMouseDrag = "menu") {
-            if (InBoundariesOfMenuButton(x, y)) {
-                Menu, SettingsMenu, Show, % menuButtonX, % menuButtonY + menuButtonH
-            }
-        }
-        currentMouseDrag := ""
+        HandleMousLeftUp(x, y)
     }
     ; A cool tooltip for debugging:
     ; Tooltip, % (wParam = 0x201 ? "LBUTTONDOWN"
@@ -105,6 +30,118 @@ Mouse(nCode, wParam, lParam)
     ; . " flags: " . NumGet(lParam+0, 12, "uint")
     ; . " time: " . NumGet(lParam+0, 16, "uint")
     Return DllCall("CallNextHookEx", "Uint", 0, "int", nCode, "Uint", wParam, "Uint", lParam)
+}
+
+HandleMouseLeftDown(x, y) {
+    global
+    ; local MyStruct
+    ; VarSetCapacity(MyStruct, 48, 0)
+    ; NumPut(48, MyStruct, 0, "UInt")
+
+    ; aaa += 4
+    ; NumPut(H_SettingsMenu, MyStruct, aaa, "UInt")
+    ; NumPut(H_SettingsMenu, MyStruct, aaa + 4, "UInt")
+    ; NumPut(0x00000002, MyStruct, 4, "UInt")
+    ; NumPut(0x10000000, MyStruct, 8, "UInt")
+    ; local success := DllCall("GetMenuInfo", "Ptr", H_SettingsMenu, "Ptr", &MyStruct)
+    ; local success := DllCall("GetMenuState", "Ptr", H_SettingsMenu, "UInt", 0, "UInt", 0x00000400)
+    ; local lastHwnd := DllCall("GetLastActivePopup", "Ptr", H_SettingsMenu)
+
+    ; local success := DllCall("GetMenuBarInfo", "Ptr", PickerHwnd, "Int", 0xFFFFFFFD, "Int", 0, "Ptr", &MyStruct)
+    ; OutputDebug, % success
+    ; OutputDebug, % A_LastError
+    ; OutputDebug, % ErrorLevel
+    if (menuShown) {
+        return
+    }
+    if (InBoundaries(x, y, menuButtonW, 0, closeButtonX - menuButtonW, titleBarH)) {
+        currentMouseDrag := "winMove"
+        winGrabX := x
+        winGrabY := y
+    }
+    if (InBoundariesOfCloseButton(x, y)) {
+        currentMouseDrag := "close"
+    }
+    if (InBoundariesOfMenuButton(x, y)) {
+        currentMouseDrag := "menu"
+    }
+    if (InBoundariesOfXY(x, y)) {
+        currentMouseDrag := "XY"
+        SetCurrentColorXY(x, y)
+    }
+    if (InBoundariesOfZ(x, y)) {
+        currentMouseDrag := "Z"
+        SetCurrentColorZ(y)
+    }
+    if (InBoundariesOfA(x, y)) {
+        currentMouseDrag := "A"
+        SetCurrentColorA(y)
+    }
+    if (InBoundariesOfSwatches(x, y)) {
+        SelectSwatch(((y - swatchesY) // swatchH) * 4 + ((x - swatchesX) // swatchW) + 1)
+        ; currentSwatch := ((y - swatchesY) // swatchH) * 4 + ((x - swatchesX) // swatchW) + 1
+        Redraw()
+    }
+}
+HandleMouseMove(x, y, mouseX, mouseY) {
+    global
+    if (menuShown) {
+        return
+    }
+    if GetKeyState("LButton") {
+        switch currentMouseDrag {
+        case "winMove":
+            WinMove, Color Picker,, mouseX - winGrabX, mouseY - winGrabY
+        case "XY":
+            SetCurrentColorXY(x, y)
+        case "Z":
+            SetCurrentColorZ(y)
+        case "A":
+            SetCurrentColorA(y)
+        }
+    } else {
+        if (InBoundariesOfCloseButton(x, y)) {
+            if (!closeButtonHover) {
+                closeButtonHover := true
+                Redraw()
+            }
+        } else {
+            if (closeButtonHover) {
+                closeButtonHover := false
+                Redraw()
+            }
+        }
+        if (InBoundariesOfMenuButton(x, y)) {
+            if (!menuButtonHover) {
+                menuButtonHover := true
+                Redraw()
+            }
+        } else {
+            if (menuButtonHover) {
+                menuButtonHover := false
+                Redraw()
+            }
+        }
+    }
+}
+HandleMousLeftUp(x, y) {
+    global
+    if (menuShown) {
+        return
+    }
+    if (currentMouseDrag = "close") {
+        if (InBoundariesOfCloseButton(x, y)) {
+            WinHide, ahk_id %PickerHwnd%
+        }
+    }
+    if (currentMouseDrag = "menu") {
+        if (InBoundariesOfMenuButton(x, y)) {
+            menuShown := true
+            Menu, SettingsMenu, Show, % menuButtonX, % menuButtonY + menuButtonH
+            menuShown := false
+        }
+    }
+    currentMouseDrag := "-"
 }
 
 InBoundaries(x, y, boxX, boxY, boxW, boxH) {
@@ -145,12 +182,15 @@ SetCurrentColorXY(x, y) {
     : y >= XY_CtrlY + XY_CtrlH ? 0
     : ((XY_CtrlH - 1) - (y - XY_CtrlY)) / (XY_CtrlH - 1)
     switch pickerMode {
-    case "Hue":
+    case "H":
         swatches[currentSwatch].S := colorX
         swatches[currentSwatch].V := colorY
-    case "Saturation":
+    case "S":
         swatches[currentSwatch].H := colorX
         swatches[currentSwatch].V := colorY
+    case "V":
+        swatches[currentSwatch].H := colorX
+        swatches[currentSwatch].S := colorY
     }
     Redraw()
 }
@@ -161,10 +201,12 @@ SetCurrentColorZ(z) {
     : z >= Z_SliderY + sliderH ? 0
     : ((sliderH - 1) - (z - Z_SliderY)) / (sliderH - 1)
     switch pickerMode {
-    case "Hue":
+    case "H":
         swatches[currentSwatch].H := colorZ
-    case "Saturation":
+    case "S":
         swatches[currentSwatch].S := colorZ
+    case "V":
+        swatches[currentSwatch].V := colorZ
     }
     Redraw()
 }

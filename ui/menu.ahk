@@ -1,33 +1,44 @@
 SetUpMenu() {
-    global modeMenuItems := [{sub: "SelectModeH", name: "Hue"}
-    ,{sub: "SelectModeS", name: "Saturation"}]
-    for index, item in modeMenuItems {
-        Menu, ModeMenu, Add, % item.name, % item.sub, +Radio
+    global modeMenuItems := { "H": "Hue", "S": "Saturation", "V": "Value" }
+    for key, value in modeMenuItems {
+        Menu, ModeMenu, Add, %value%, SelectMode, +Radio
     }
     global pickerMode
-    Menu, ModeMenu, Check, % pickerMode ; check the current mode initially
-    Menu, SettingsMenu, Add, Picker Mode, :ModeMenu
+    Menu, ModeMenu, Check, % modeMenuItems[pickerMode] ; checkmark the current mode initially
+    Menu, SettingsMenu, Add, Mode, :ModeMenu
+    Menu, SettingsMenu, Add, True Colors, ToggleTrueColors
+    global trueColors
+    if (trueColors) {
+        Menu, SettingsMenu, Check, True Colors
+    }
+
+    Menu, SettingsMenu, Add
     Menu, SettingsMenu, Add, Exit, ExitApplication
+
+    global H_SettingsMenu := MenuGetHandle("SettingsMenu")
 }
 
-SelectModeH:
-    SelectMode("Hue")
-return
-SelectModeS:
-    SelectMode("Saturation")
-return
-
-SelectMode(mode) {
-    global pickerMode
-    pickerMode := mode
-    UncheckAllModes()
-    Menu, ModeMenu, Check, % mode
-    Redraw()
-}
-
-UncheckAllModes() {
+SelectMode:
     global modeMenuItems
-    for index, item in modeMenuItems {
-        Menu, ModeMenu, Uncheck, % item.name
+    global pickerMode
+    Menu, ModeMenu, Uncheck, % modeMenuItems[pickerMode]
+    pickerMode := GetMode(A_ThisMenuItem)
+    Menu, ModeMenu, Check, %A_ThisMenuItem%
+    Redraw()
+return
+
+GetMode(modeText) {
+    global modeMenuItems
+    for key, value in modeMenuItems {
+        if (value = modeText) {
+            return key
+        }
     }
+    throw "mode " . modeText . "not found"
 }
+
+ToggleTrueColors:
+    trueColors := trueColors ? 0 : 1
+    Menu, SettingsMenu, ToggleCheck, True Colors
+    Redraw()
+return

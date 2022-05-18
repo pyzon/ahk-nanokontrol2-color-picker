@@ -12,8 +12,9 @@ InitGui:
     guiHidden := false
     closeButtonHover := false
     menuButtonHover := false
-    currentMouseDrag := "" ; Keeps track of whatever that has been clicked and dragged
+    currentMouseDrag := "-" ; Keeps track of whatever that has been clicked and dragged
     windowActive := true
+    menuShown := false
 
     Gui, Picker:New, -Caption ToolWindow AlwaysOnTop +HwndPickerHwnd, Color Picker
     FrameShadow(PickerHwnd)
@@ -123,7 +124,7 @@ DrawXY_Contoller(mode, color) {
     local x
     local y
     switch mode {
-    case "Hue":
+    case "H":
         local hRGB := HSV2RGB_Number({H: color.H, S: 1, V: 1})
         local SGradBrush := new Canvas.LinearGradientBrush([XY_CtrlX, XY_CtrlY]
         , [XY_CtrlX + XY_CtrlW, XY_CtrlY]
@@ -134,13 +135,28 @@ DrawXY_Contoller(mode, color) {
         sf.FillRectangle(VGradBrush, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
         x := color.S
         y := color.V
-    case "Saturation":
+    case "S":
         sf.Draw(hueX, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
+        if (trueColors) {
+            sf.FillRectangle(new Canvas.SolidBrush(((1-color.S)*255)<<24|0xffffff)
+            , XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
+        }
         local VGradBrush := new Canvas.LinearGradientBrush([XY_CtrlX, XY_CtrlY], [XY_CtrlX, XY_CtrlY + XY_CtrlH]
         , 0x00000000, 0xff000000)
         sf.FillRectangle(VGradBrush, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
         x := color.H
         y := color.V
+    case "V":
+        sf.Draw(hueX, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
+        local VGradBrush := new Canvas.LinearGradientBrush([XY_CtrlX, XY_CtrlY], [XY_CtrlX, XY_CtrlY + XY_CtrlH]
+        , 0x00000000, 0xffffffff)
+        sf.FillRectangle(VGradBrush, XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
+        if (trueColors) {
+            sf.FillRectangle(new Canvas.SolidBrush(((1-color.V)*255)<<24)
+            , XY_CtrlX, XY_CtrlY, XY_CtrlW, XY_CtrlH)
+        }
+        x := color.H
+        y := color.S
     }
     sf.Draw(cross
     , XY_CtrlX - crossWH + Round(x * (XY_CtrlW - 1))
@@ -153,10 +169,16 @@ DrawZ_Slider(mode, color) {
     DrawBorder(sf, Z_SliderX, Z_SliderY, sliderW, sliderH, borderW, borderBr)
     local z
     switch mode {
-    case "Hue":
+    case "H":
         sf.Draw(hueSlider, Z_SliderX, Z_SliderY, sliderW, sliderH)
+        if (trueColors) {
+            sf.FillRectangle(new Canvas.SolidBrush(((1-color.S)*255)<<24|0xffffff)
+            , Z_SliderX, Z_SliderY, sliderW, sliderH)
+            sf.FillRectangle(new Canvas.SolidBrush(((1-color.V)*255)<<24)
+            , Z_SliderX, Z_SliderY, sliderW, sliderH)
+        }
         z := color.H
-    case "Saturation":
+    case "S":
         local hvRGBs1 := HSV2RGB_Number({H: color.H, S: 1, V: color.V})
         local hvRGBs0 := HSV2RGB_Number({H: color.H, S: 0, V: color.V})
         local SGradBrush := new Canvas.LinearGradientBrush([Z_SliderX, Z_SliderY]
@@ -164,6 +186,14 @@ DrawZ_Slider(mode, color) {
         , 0xff<<24|hvRGBs1, 0xff<<24|hvRGBs0)
         sf.FillRectangle(SGradBrush, Z_SliderX, Z_SliderY, sliderW, sliderH)
         z := color.S
+    case "V":
+        local hsRGBv1 := HSV2RGB_Number({H: color.H, S: color.S, V: 1})
+        local hsRGBv0 := HSV2RGB_Number({H: color.H, S: colos.S, V: 0})
+        local VGradBrush := new Canvas.LinearGradientBrush([Z_SliderX, Z_SliderY]
+        , [Z_SliderX, Z_SliderY + sliderH]
+        , 0xff<<24|hsRGBv1, 0xff<<24|hsRGBv0)
+        sf.FillRectangle(VGradBrush, Z_SliderX, Z_SliderY, sliderW, sliderH)
+        z := color.V
     }
     sf.Draw(thumb
     , Z_SliderX - thumbWH

@@ -188,6 +188,7 @@ InitApp:
     swatches := []
     IniRead, currentSwatch, save.ini, General, CurrentSwatch, 1
     IniRead, pickerMode, save.ini, General, PickerMode, "Hue"
+    IniRead, trueColors, save.ini, General, TrueColors, 0
     loop %numberOfSwatches% {
         IniRead, H, save.ini, % "Swatch" . A_Index, H, 1
         IniRead, S, save.ini, % "Swatch" . A_Index, S, 0
@@ -246,8 +247,10 @@ ExitFunc(ExitReason, ExitCode) {
     global swatches
     global currentSwatch
     global pickerMode
+    global trueColors
     IniWrite, %currentSwatch%, save.ini, General, CurrentSwatch
     IniWrite, %pickerMode%, save.ini, General, PickerMode
+    IniWrite, %trueColors%, save.ini, General, TrueColors
     loop %numberOfSwatches% {
         H := swatches[A_Index].H
         S := swatches[A_Index].S
