@@ -34,23 +34,6 @@ Mouse(nCode, wParam, lParam)
 
 HandleMouseLeftDown(x, y) {
     global
-    ; local MyStruct
-    ; VarSetCapacity(MyStruct, 48, 0)
-    ; NumPut(48, MyStruct, 0, "UInt")
-
-    ; aaa += 4
-    ; NumPut(H_SettingsMenu, MyStruct, aaa, "UInt")
-    ; NumPut(H_SettingsMenu, MyStruct, aaa + 4, "UInt")
-    ; NumPut(0x00000002, MyStruct, 4, "UInt")
-    ; NumPut(0x10000000, MyStruct, 8, "UInt")
-    ; local success := DllCall("GetMenuInfo", "Ptr", H_SettingsMenu, "Ptr", &MyStruct)
-    ; local success := DllCall("GetMenuState", "Ptr", H_SettingsMenu, "UInt", 0, "UInt", 0x00000400)
-    ; local lastHwnd := DllCall("GetLastActivePopup", "Ptr", H_SettingsMenu)
-
-    ; local success := DllCall("GetMenuBarInfo", "Ptr", PickerHwnd, "Int", 0xFFFFFFFD, "Int", 0, "Ptr", &MyStruct)
-    ; OutputDebug, % success
-    ; OutputDebug, % A_LastError
-    ; OutputDebug, % ErrorLevel
     if (menuShown) {
         return
     }

@@ -34,3 +34,19 @@
   - Play button: #rrggbbaa
 - The Cycle button can be used to hide/show the tool window. The program keeps running in the background when the window is hidden.
 - Added code templates to set up hotkeys for the MIDI button functions, so the tool is useable even if there is no MIDI controller connected.
+
+### version 1.1.1
+
+- The traditional window title is replaced bar with a modern looking custom one. The new title bar has the following features.
+  - Move the window by dragging the title bar.
+  - Close the window (but not the app) by clicking the X in the top left corner.
+  - Open a menu by clicking the menu button top right corner.
+- The menu has the following options.
+  - Chose a mode: Hue, Saturation, or Value. This setting determines which parameter should be on the first slider. The other two parameters can be set via the XY controller.
+  - True Colors switch: check it, if you want to see the true colors on the hue scale at all times. Uncheck it for a better view of the hue.
+  - Exit: exits the app.
+- The tray icon is replaced with a nice rainbow circle icon.
+- The tray icon menu is reworked. It no longer contains the default menu items, but the following ones:
+  - Open: opens the color picker window. Same as if you click on the tray icon with the left mouse button.
+  - Chose a MIDI-in device (unchanged).
+  - Exit: exits the app.

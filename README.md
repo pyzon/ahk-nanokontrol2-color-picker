@@ -4,13 +4,17 @@ AHK nanoKONTROL2 Color Picker is a color picker tool to be used with a MIDI cont
 
 ## Functionalities
 
-![Tool window](./images/readme_tool_window_1.1.png)
+![Tool window](./images/readme_window_1.1.1.png)
 
-- It is a tool window meaning it has a fixed size, cannot be minimized thus it only has a close button. Additionally to this, it is always on top and not showing on the taskbar nor the <kbd>Alt + Tab</kbd> list
-- There is a two dimensional saturation-value controller, and a hue and an alpha slider that can be changed with mouse (click and drag).
+- It is a tool window. It is always on top and not showing on the taskbar nor the <kbd>Alt + Tab</kbd> list, thus it does not have a minimize button.
+- The window cannot be resized (no maximize button either).
+- The title bar has a close button and a menu button.
+- There is a two dimensional XY controller, a Z slider and an alpha slider, all of which can be changed with mouse (click and drag).
+- There are three modes to chose from: Hue, Saturation and Value. It determines which parameter can be set on the Z slider, while the other two can be set on the XY controller.
+- There is a True Colors switch. Check it if you want to see the true colors on the Hue scale at all times. Uncheck it for a better view of the hue.
 - There is a color holder rectangle that shows the current color.
-- There are 8 swatches (saved colors), you can select one by clicking on it. The selected color can be changed with the HSVA controls.
-- All of the swatches are saved to a `save.ini` file on exit and loaded back on start.
+- There are 8 swatches (saved colors), you can select one by clicking on it. There is always one that is currently selected and being modified by the controls.
+- All of the swatches and settings are saved to a `save.ini` file on exit and loaded back on start.
 - The current color holder and each swatch show the aplha as well. The left half shows the opaque color and the right half shows the color with alpha in front of a checkerboard pattern background.
 
 ![nanoKONTROL2](./images/readme_nano.svg)
@@ -44,7 +48,7 @@ AHK nanoKONTROL2 Color Picker is a color picker tool to be used with a MIDI cont
 ## Known issues
 
 - The resolution of sliders and knobs on the nanoKONTROL2 (and on most MIDI devices) is 128. This is because they use the MIDI control change message where the value can only be between 0 and 127. Consequently the number of possible colors is much less than the number of all the possible colors. However, it is still sufficient in most use cases.
-- When changing between swatches, the physical sliders don't change with it. This means, when moving a slider after a swatch change, it will jump in value. This issue could be solved with motorized faders or infinite knobs but it is not implemented yet.
+- When changing between swatches, the physical sliders don't change with it. This means, when moving a slider after a swatch change, it will jump in value. This issue could be solved with motorized faders or infinite knobs (rotaty encoders) but it is not implemented yet.
 
 ## Ways to improve
 
